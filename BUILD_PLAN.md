@@ -125,4 +125,5 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Checkpoint commit: `ab9fb2d` — `Implement filename-based gallery tagging`.
 - Follow-up UX fix: canonicalize the active four game categories to their order in `set-gallery.json`, independent of selection click order. Regression test added; `npm test` passed (30 tests) and `npm run build` passed.
 - Category-order checkpoint commit: `8463da1` — `Preserve gallery category order in games`.
+- Setup default behavior: on gallery selection, preselect all categories and all values; users uncheck down to four categories and three values per category. Readiness checks immediately for the initially selected setup. Verified in browser with the 81-card Hedgehogs gallery; all 30 tests and production build pass.
 - Next: wait for user direction. Milestone 3 was explicitly deferred; permanent history is milestone 5 if desired.

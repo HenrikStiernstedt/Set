@@ -74,8 +74,12 @@ async function loadGalleries() {
 
 function chooseGallery(galleryId) {
   selectedGalleryId.value = galleryId;
-  selectedCategoryIds.value = [];
-  selectedValues.value = {};
+  const gallery = galleries.value.find((item) => item.id === galleryId);
+  selectedCategoryIds.value = (gallery?.categories ?? []).map((category) => category.id);
+  selectedValues.value = Object.fromEntries((gallery?.categories ?? []).map((category) => [
+    category.id,
+    category.values.map((value) => value.id),
+  ]));
   readiness.value = null;
   recommendations.value = [];
   acknowledgedVariation.value = false;
@@ -84,6 +88,7 @@ function chooseGallery(galleryId) {
   filenamePreview.value = null;
   filenameError.value = '';
   void loadFilenameProfile(galleryId);
+  void refreshReadiness();
 }
 
 async function loadFilenameProfile(galleryId) {
@@ -195,10 +200,10 @@ function toggleCategory(category) {
     selectedCategoryIds.value.splice(existingIndex, 1);
     delete selectedValues.value[category.id];
   } else {
-    if (selectedCategoryIds.value.length >= 4) return;
     selectedCategoryIds.value.push(category.id);
-    selectedValues.value[category.id] = [];
+    selectedValues.value[category.id] = category.values.map((value) => value.id);
   }
+  acknowledgedVariation.value = false;
   void refreshReadiness();
 }
 
@@ -206,7 +211,7 @@ function toggleValue(category, value) {
   const selected = selectedValues.value[category.id] ?? (selectedValues.value[category.id] = []);
   const index = selected.indexOf(value.id);
   if (index >= 0) selected.splice(index, 1);
-  else if (selected.length < 3) selected.push(value.id);
+  else selected.push(value.id);
   acknowledgedVariation.value = false;
   void refreshReadiness();
 }
@@ -451,11 +456,11 @@ onUnmounted(() => {
         </section>
 
         <section v-if="activeGallery" class="category-setup" aria-labelledby="category-heading">
-          <div class="section-title-row"><div><p class="eyebrow">02 / GAME RULES</p><h2 id="category-heading">Choose four categories</h2></div><span class="selection-counter">{{ selectedCategoryIds.length }} <span>/ 4 selected</span></span></div>
+          <div class="section-title-row"><div><p class="eyebrow">02 / GAME RULES</p><h2 id="category-heading">Choose four categories</h2></div><span class="selection-counter">{{ selectedCategoryIds.length }} <span>selected · choose 4</span></span></div>
           <p class="helper-copy">Only these four categories determine whether three cards make a Set. Other tags in the gallery do not affect this game.</p>
           <div class="category-list">
             <article v-for="category in activeGallery.categories" :key="category.id" class="category-card" :class="{ chosen: selectedCategoryIds.includes(category.id), disabled: !selectedCategoryIds.includes(category.id) && selectedCategoryIds.length >= 4 }">
-              <button class="category-toggle" :aria-pressed="selectedCategoryIds.includes(category.id)" :disabled="!selectedCategoryIds.includes(category.id) && selectedCategoryIds.length >= 4" @click="toggleCategory(category)">
+              <button class="category-toggle" :aria-pressed="selectedCategoryIds.includes(category.id)" @click="toggleCategory(category)">
                 <span class="checkmark">{{ selectedCategoryIds.includes(category.id) ? '✓' : '' }}</span><span class="category-name">{{ category.name }}</span><span class="category-value-count">{{ category.values.length }} values</span>
               </button>
               <div v-if="selectedCategoryIds.includes(category.id)" class="value-list" :aria-label="`Select three values for ${category.name}`">
