@@ -1,0 +1,23 @@
+{
+  "name": "set-gallery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local solo and multiplayer Set game using user-provided image galleries.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "server": "node server/index.js",
+    "server:watch": "node --watch server/index.js",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.7"
+  }
+}

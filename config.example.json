@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "targetSets": 5,
+  "startingBoardSize": 12,
+  "maxImageImportBytes": 26214400,
+  "networkMode": "local",
+  "bindAddress": "127.0.0.1",
+  "publicBaseUrl": null,
+  "multiplayerRoomIdleMinutes": 60,
+  "popularSetupLimit": 10,
+  "galleryRoots": ["./galleries"]
+}

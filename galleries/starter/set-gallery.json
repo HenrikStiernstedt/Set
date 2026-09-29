@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "starter-gallery",
+  "name": "Starter Gallery",
+  "categories": [
+    {
+      "id": "color",
+      "name": "Color",
+      "values": [
+        { "id": "red", "label": "Red" },
+        { "id": "green", "label": "Green" },
+        { "id": "blue", "label": "Blue" }
+      ]
+    },
+    {
+      "id": "number",
+      "name": "Number",
+      "values": [
+        { "id": "one", "label": "One" },
+        { "id": "two", "label": "Two" },
+        { "id": "three", "label": "Three" }
+      ]
+    },
+    {
+      "id": "symbol",
+      "name": "Symbol",
+      "values": [
+        { "id": "circle", "label": "Circle" },
+        { "id": "diamond", "label": "Diamond" },
+        { "id": "wave", "label": "Wave" }
+      ]
+    },
+    {
+      "id": "shade",
+      "name": "Shade",
+      "values": [
+        { "id": "solid", "label": "Solid" },
+        { "id": "striped", "label": "Striped" },
+        { "id": "outlined", "label": "Outlined" }
+      ]
+    }
+  ],
+  "cards": []
+}
