@@ -111,5 +111,6 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 
 - Milestone 0 complete: scaffolded Vue 3/Vite frontend and a built-in Node HTTP server; added loopback peer-address guard (including IPv4-mapped IPv6), health routes, starter manifest, example config, README, and npm scripts. No game/editor logic is implemented yet.
 - Validation: `npm test` passed (4 security tests); `npm run build` passed; production server served the page at `http://127.0.0.1:3001/` and the UI reported the local health API online. Server was stopped after the smoke test.
-- Decisions: use Node built-in HTTP instead of Express; use system fonts so the shell has no external runtime font dependency; keep Vite and server as separate terminal commands during development. Workspace had no Git repository, so no commit was created.
+- Decisions: use Node built-in HTTP instead of Express; use system fonts so the shell has no external runtime font dependency; keep Vite and server as separate terminal commands during development.
+- Checkpoint commit: `9b50aff` — `Scaffold Set Gallery milestone 0`.
 - Next: milestone 1, gallery manifest loading and game-readiness validation.
