@@ -114,6 +114,23 @@ test('creates an 81-card unique-combination deck and opening board', () => {
   assert.equal(new Set([...game.board, ...game.remainingDeck].map((card) => JSON.stringify(game.categoryIds.map((id) => card.features[id])))).size, 81);
 });
 
+test('game category order follows the gallery manifest, not selection click order', () => {
+  const manifest = buildManifest();
+  const reversedSelection = {
+    categoryIds: [...selection.categoryIds].reverse(),
+    valuesByCategory: selection.valuesByCategory,
+  };
+  const result = createSoloGame({
+    manifest,
+    usableCards: manifest.cards,
+    selection: reversedSelection,
+    random: constantRandom,
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.game.categoryIds, manifest.categories.map((category) => category.id));
+  assert.deepEqual(result.game.selectedCategoryLabels.map((category) => category.name), manifest.categories.map((category) => category.name));
+});
+
 test('unselected variation must be acknowledged before start', () => {
   const manifest = buildManifest(true);
   const result = createSoloGame({ manifest, usableCards: manifest.cards, selection, random: constantRandom });

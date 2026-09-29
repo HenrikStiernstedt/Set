@@ -74,6 +74,10 @@ export function createSoloGame({ manifest, usableCards, allowedRoots = [], selec
     };
   }
 
+  const selectedCategorySet = new Set(selection.categoryIds);
+  const orderedCategoryIds = manifest.categories.filter((category) => selectedCategorySet.has(category.id)).map((category) => category.id);
+  const orderedValuesByCategory = Object.fromEntries(orderedCategoryIds.map((id) => [id, [...selection.valuesByCategory[id]]]));
+  const orderedSelection = { categoryIds: orderedCategoryIds, valuesByCategory: orderedValuesByCategory };
   const deck = shuffle(prepared.deck, randomValue);
   const game = {
     id: randomUUID(),
@@ -83,8 +87,8 @@ export function createSoloGame({ manifest, usableCards, allowedRoots = [], selec
     sourceManifest: manifest,
     sourceCards: usableCards,
     allowedRoots: [...allowedRoots],
-    categoryIds: [...selection.categoryIds],
-    valuesByCategory: Object.fromEntries(selection.categoryIds.map((id) => [id, [...selection.valuesByCategory[id]]])),
+    categoryIds: orderedCategoryIds,
+    valuesByCategory: orderedValuesByCategory,
     startingBoardSize,
     targetSets,
     createdAt: new Date().toISOString(),
@@ -95,7 +99,7 @@ export function createSoloGame({ manifest, usableCards, allowedRoots = [], selec
     mistakes: 0,
     status: 'active',
     outcome: null,
-    selectedCategoryLabels: categoryLabels(manifest, selection),
+    selectedCategoryLabels: categoryLabels(manifest, orderedSelection),
     assetTokens: new Map(),
     readinessWarnings: prepared.readiness.variationWarnings,
   };

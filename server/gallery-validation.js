@@ -168,11 +168,21 @@ function validateSelection(manifest, selection) {
   const categories = new Map((Array.isArray(manifest.categories) ? manifest.categories : [])
     .filter((category) => isRecord(category) && typeof category.id === 'string')
     .map((category) => [category.id, category]));
-  const categoryIds = selection?.categoryIds;
+  const requestedCategoryIds = selection?.categoryIds;
   const valuesByCategory = selection?.valuesByCategory;
-  if (!Array.isArray(categoryIds) || categoryIds.length !== 4 || new Set(categoryIds).size !== 4) {
+  if (!Array.isArray(requestedCategoryIds) || requestedCategoryIds.length !== 4 || new Set(requestedCategoryIds).size !== 4) {
     errors.push({ code: 'invalid-category-selection', message: 'Select exactly four distinct category IDs.' });
     return { errors, categoryIds: [], valuesByCategory: {}, categories };
+  }
+  const requested = new Set(requestedCategoryIds);
+  const categoryIds = manifest.categories
+    .filter((category) => isRecord(category) && requested.has(category.id))
+    .map((category) => category.id);
+  if (categoryIds.length !== 4) {
+    for (const categoryId of requestedCategoryIds) {
+      if (!categories.has(categoryId)) errors.push({ code: 'unknown-category', categoryId, message: 'Selected category does not exist.' });
+    }
+    return { errors, categoryIds, valuesByCategory: valuesByCategory ?? {}, categories };
   }
   if (!isRecord(valuesByCategory)) {
     errors.push({ code: 'invalid-value-selection', message: 'Selected values must be provided for each category.' });
@@ -282,6 +292,7 @@ export function rankValueAlternatives(manifest, categoryIds, currentValuesByCate
   const maximum = Number.isSafeInteger(options.maxEvaluations) && options.maxEvaluations > 0 ? options.maxEvaluations : 50000;
   const limit = Number.isSafeInteger(options.limit) && options.limit > 0 ? options.limit : 20;
   const selectionCheck = validateSelection(manifest, { categoryIds, valuesByCategory: currentValuesByCategory });
+  categoryIds = selectionCheck.categoryIds;
   const categories = selectionCheck.categories;
   if (!Array.isArray(categoryIds) || categoryIds.length !== 4 || new Set(categoryIds).size !== 4 || categoryIds.some((id) => !categories.has(id))) {
     return { recommendations: [], evaluatedCount: 0, truncated: false, errors: [{ code: 'invalid-category-selection', message: 'Select exactly four distinct existing categories.' }] };
