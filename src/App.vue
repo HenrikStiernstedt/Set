@@ -13,6 +13,15 @@ const readiness = ref(null);
 const recommendations = ref([]);
 const acknowledgedVariation = ref(false);
 const setupError = ref('');
+const showFilenameTagging = ref(false);
+const filenameProfile = ref({ enabled: false, delimiter: '_', slots: [] });
+const filenamePositions = ref({});
+const filenameProfileDirty = ref(false);
+const filenamePreview = ref(null);
+const filenameError = ref('');
+const filenameBusy = ref(false);
+const filenameDecisions = ref({});
+const filenameGlobalResolutions = ref({});
 const game = ref(null);
 const selectedCardIds = ref([]);
 const matchedCards = ref([]);
@@ -55,7 +64,7 @@ async function loadGalleries() {
     const data = await requestJson('/api/galleries');
     galleries.value = data.galleries ?? [];
     apiStatus.value = 'online';
-    apiMessage.value = `Local service online · ${galleries.value.length} gallery${galleries.value.length === 1 ? '' : 'ies'} found`;
+    apiMessage.value = `Local service online · ${galleries.value.length} ${galleries.value.length === 1 ? 'gallery' : 'galleries'} found`;
     if (!selectedGalleryId.value && galleries.value.length) chooseGallery(galleries.value[0].id);
   } catch (error) {
     apiStatus.value = 'offline';
@@ -71,6 +80,113 @@ function chooseGallery(galleryId) {
   recommendations.value = [];
   acknowledgedVariation.value = false;
   setupError.value = '';
+  showFilenameTagging.value = false;
+  filenamePreview.value = null;
+  filenameError.value = '';
+  void loadFilenameProfile(galleryId);
+}
+
+async function loadFilenameProfile(galleryId) {
+  try {
+    const result = await requestJson(`/api/galleries/${encodeURIComponent(galleryId)}/editor/filename-profile`);
+    filenameProfile.value = { enabled: result.profile?.enabled === true, delimiter: result.profile?.delimiter ?? '_', slots: result.profile?.slots ?? [] };
+    filenameProfileDirty.value = false;
+    filenamePositions.value = Object.fromEntries(filenameProfile.value.slots.map((slot) => [slot.categoryId, slot.position]));
+    if (!filenameProfile.value.slots.length) {
+      const gallery = galleries.value.find((item) => item.id === galleryId);
+      filenamePositions.value = Object.fromEntries((gallery?.categories ?? []).slice(0, 4).map((category, index) => [category.id, index + 1]));
+    }
+  } catch (error) {
+    filenameError.value = error.message;
+  }
+}
+
+async function saveFilenameProfile() {
+  if (!activeGallery.value) return;
+  filenameBusy.value = true;
+  filenameError.value = '';
+  try {
+    const slots = Object.entries(filenamePositions.value)
+      .filter(([, position]) => Number.isInteger(Number(position)) && Number(position) > 0)
+      .map(([categoryId, position]) => ({ categoryId, position: Number(position) }))
+      .sort((left, right) => left.position - right.position);
+    const profile = { enabled: true, delimiter: filenameProfile.value.delimiter || '_', slots };
+    await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/filename-profile`, {
+      method: 'PATCH', body: JSON.stringify({ profile }),
+    });
+    filenameProfile.value = profile;
+    filenameProfileDirty.value = false;
+    filenamePreview.value = null;
+    showFilenameTagging.value = true;
+    await loadGalleries();
+    showMessage('Filename rules saved.', 'info');
+  } catch (error) {
+    filenameError.value = error.data?.errors?.map((item) => item.message).join(' ') || error.message;
+  } finally {
+    filenameBusy.value = false;
+  }
+}
+
+async function previewFilenameTags() {
+  if (!activeGallery.value) return;
+  filenameBusy.value = true;
+  filenameError.value = '';
+  try {
+    filenamePreview.value = await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/filename-preview`, {
+      method: 'POST', body: JSON.stringify({}),
+    });
+    filenameDecisions.value = {};
+    filenameGlobalResolutions.value = {};
+  } catch (error) {
+    filenameError.value = error.message;
+  } finally {
+    filenameBusy.value = false;
+  }
+}
+
+function fileDecision(file) {
+  if (!filenameDecisions.value[file.assetPath]) filenameDecisions.value[file.assetPath] = { valueResolutions: {}, conflicts: {}, skip: false };
+  return filenameDecisions.value[file.assetPath];
+}
+
+const unknownFilenameValues = computed(() => {
+  const unique = new Map();
+  for (const file of filenamePreview.value?.files ?? []) {
+    for (const issue of file.issues ?? []) {
+      if (!['unknown-value', 'ambiguous-value'].includes(issue.code)) continue;
+      const key = `${issue.categoryId}:${issue.token}`;
+      if (!unique.has(key)) unique.set(key, issue);
+    }
+  }
+  return [...unique.values()];
+});
+
+async function applyFilenameTags() {
+  if (!activeGallery.value || !filenamePreview.value) return;
+  filenameBusy.value = true;
+  filenameError.value = '';
+  const decisions = { valueResolutions: {}, globalValueResolutions: filenameGlobalResolutions.value, skipFiles: [] };
+  for (const file of filenamePreview.value.files) {
+    const choice = fileDecision(file);
+    if (choice.skip) { decisions.skipFiles.push(file.assetPath); continue; }
+    decisions.valueResolutions[file.assetPath] = choice.valueResolutions;
+    decisions[file.assetPath] = choice.conflicts;
+  }
+  try {
+    const result = await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/filename-apply`, {
+      method: 'POST', body: JSON.stringify({ decisions }),
+    });
+    showMessage(`Tagged ${result.createdCount} new and updated ${result.updatedCount} existing images.`, 'info');
+    filenamePreview.value = null;
+    await loadGalleries();
+  } catch (error) {
+    const unresolved = error.data?.unresolved ?? [];
+    filenameError.value = unresolved.length
+      ? `${unresolved.length} file(s) still need a value mapping, conflict choice, or skip.`
+      : error.data?.errors?.map((item) => item.message).join(' ') || error.message;
+  } finally {
+    filenameBusy.value = false;
+  }
 }
 
 function toggleCategory(category) {
@@ -360,6 +476,63 @@ onUnmounted(() => {
             </template>
           </div>
           <p v-if="setupError" class="error-text" role="alert">{{ setupError }}</p>
+        </section>
+
+        <section v-if="activeGallery" class="filename-tagging-panel">
+          <div class="filename-panel-heading">
+            <div><p class="eyebrow">OPTIONAL · AUTOMATED TAGGING</p><h2>Tag images from filenames</h2><p class="helper-copy">Map filename token positions to categories, preview all images in this gallery, then apply the tags. Existing image files are not copied or renamed.</p></div>
+            <button class="secondary-button" @click="showFilenameTagging = !showFilenameTagging">{{ showFilenameTagging ? 'Hide' : 'Configure' }}</button>
+          </div>
+          <template v-if="showFilenameTagging">
+            <div class="filename-profile-form">
+              <label class="form-field">Token delimiter <input v-model="filenameProfile.delimiter" maxlength="8" placeholder="_" @input="filenameProfileDirty = true" /></label>
+              <div v-for="category in activeGallery.categories" :key="category.id" class="form-field token-slot">
+                <label :for="`slot-${category.id}`">{{ category.name }} token position</label>
+                <select :id="`slot-${category.id}`" v-model.number="filenamePositions[category.id]" @change="filenameProfileDirty = true">
+                  <option :value="0">Not mapped</option>
+                  <option v-for="position in 16" :key="position" :value="position">{{ position }}</option>
+                </select>
+              </div>
+              <button class="primary-button" :disabled="filenameBusy" @click="saveFilenameProfile">{{ filenameBusy ? 'Saving…' : 'Save filename rules' }}</button>
+            </div>
+            <p class="filename-rule-note">Parser order: remove extension → ignore everything from the first hyphen → split on the delimiter → ignore numeric-only tokens and exact v1/V2-style tokens → map remaining positions. Example: <code>blue_1h_0f_dotted-v5ab.png</code> maps tokens 1–4 as <code>blue</code>, <code>1h</code>, <code>0f</code>, <code>dotted</code>.</p>
+            <div class="filename-actions"><button class="secondary-button" :disabled="filenameBusy || filenameProfileDirty" @click="previewFilenameTags">{{ filenameBusy ? 'Scanning…' : filenameProfileDirty ? 'Save rules before preview' : 'Preview all gallery images' }}</button><button v-if="filenamePreview" class="primary-button" :disabled="filenameBusy || !filenamePreview.files.length" @click="applyFilenameTags">Apply reviewed tags</button></div>
+            <p v-if="filenameError" class="error-text" role="alert">{{ filenameError }}</p>
+            <div v-if="filenamePreview" class="filename-preview" aria-live="polite">
+              <div class="filename-preview-summary"><strong>{{ filenamePreview.files.length }} of {{ filenamePreview.totalDiscovered }} images previewed</strong><span>Preview does not change files or manifest.</span></div>
+              <p v-if="filenamePreview.profile.slots.length === 0" class="error-text">Map at least one token position and save the profile before applying tags.</p>
+              <div v-if="unknownFilenameValues.length" class="filename-unknown-mappings">
+                <strong>Map each filename token once</strong>
+                <div v-for="issue in unknownFilenameValues" :key="`${issue.categoryId}-${issue.token}`" class="unknown-mapping-row">
+                  <span><code>{{ issue.token }}</code> → {{ issue.categoryName }}</span>
+                  <select :value="filenameGlobalResolutions[issue.categoryId]?.[issue.token] ?? ''" @change="(filenameGlobalResolutions[issue.categoryId] ||= {})[issue.token] = $event.target.value">
+                    <option value="">Choose a value…</option>
+                    <option v-for="value in activeGallery.categories.find((item) => item.id === issue.categoryId)?.values ?? []" :key="value.id" :value="value.id">{{ value.label }}</option>
+                  </select>
+                </div>
+              </div>
+              <article v-for="file in filenamePreview.files" :key="file.assetPath" class="filename-file-row">
+                <div class="filename-file-name"><strong>{{ file.sourceName }}</strong><code>{{ file.parsedStem }}<template v-if="file.ignoredSuffix !== null"> <span class="ignored-token">−{{ file.ignoredSuffix }}</span></template></code></div>
+                <div class="filename-pills"><span v-for="token in file.tokens" :key="`${file.assetPath}-${token}`" class="filename-token">{{ token }}</span><span v-for="token in file.ignoredTokens" :key="`${file.assetPath}-ignored-${token}`" class="filename-token ignored-token">{{ token }} · ignored</span></div>
+                <div v-if="Object.keys(file.assignments).length" class="proposed-tags"><span v-for="(valueId, categoryId) in file.assignments" :key="categoryId">{{ categoryName(categoryId) }} = {{ valueName(categoryId, valueId) }}</span></div>
+                <div v-for="issue in file.issues" :key="`${file.assetPath}-${issue.categoryId}-${issue.code}`" class="tag-resolution">
+                  <span class="tag-issue">{{ issue.message }}</span>
+                  <span v-if="['unknown-value','ambiguous-value'].includes(issue.code)" class="mapping-hint">Use the shared mapping above.</span>
+                  <label v-if="['unknown-value','ambiguous-value'].includes(issue.code) && filenameGlobalResolutions[issue.categoryId]?.[issue.token] && file.existingFeatures?.[issue.categoryId] && file.existingFeatures[issue.categoryId] !== filenameGlobalResolutions[issue.categoryId][issue.token]" class="form-field">Existing tag differs
+                    <select v-model="fileDecision(file).conflicts[issue.categoryId]"><option value="">Choose…</option><option value="overwrite">Overwrite existing tag</option><option value="ignore">Keep existing tag</option></select>
+                  </label>
+                </div>
+                <div v-for="conflict in file.conflicts" :key="`${file.assetPath}-${conflict.categoryId}`" class="tag-resolution conflict-resolution">
+                  <span class="tag-issue">{{ categoryName(conflict.categoryId) }} is already {{ conflict.oldLabel }}; filename says {{ conflict.proposedLabel }}.</span>
+                  <label class="form-field">Decision
+                    <select v-model="fileDecision(file).conflicts[conflict.categoryId]"><option value="">Choose…</option><option value="overwrite">Overwrite existing tag</option><option value="ignore">Keep existing tag</option></select>
+                  </label>
+                </div>
+                <label v-if="file.issues.length || file.outcome === 'ambiguous-record'" class="skip-file"><input v-model="fileDecision(file).skip" type="checkbox" /> Skip this file for now</label>
+                <span class="file-outcome" :class="file.outcome">{{ file.outcome }}</span>
+              </article>
+            </div>
+          </template>
         </section>
 
         <section v-if="activeGallery" class="game-options">

@@ -212,6 +212,7 @@ export function createGalleryCatalog(configuredRoots) {
     return {
       id: entry.id,
       name: entry.name,
+      filenameTagging: manifest?.filenameTagging ?? null,
       validation: { valid: entry.validation.valid, errors: entry.validation.errors },
       counts: {
         categories: categories.length,

@@ -7,6 +7,7 @@ import { requireLoopback } from './security.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
 import { createSoloGame, dealThree, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
+import { applyGalleryFilenameTags, previewGalleryFilenameTags, saveFilenameProfile } from './filename-tagging.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(currentDir, '..', 'dist');
@@ -305,6 +306,59 @@ export function createSetGalleryServer(options = {}) {
             sendJson(res, 200, { gallery: catalog.getLocalSummary(entry) });
           })
           .catch(() => sendJson(res, 500, { error: 'Gallery validation failed.' }));
+      });
+      return;
+    }
+
+    const filenameProfileMatch = /^\/api\/galleries\/([^/]+)\/editor\/filename-profile$/.exec(pathname);
+    if (filenameProfileMatch && ['GET', 'PATCH'].includes(req.method)) {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(filenameProfileMatch[1]);
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          if (req.method === 'GET') return sendJson(res, 200, { profile: entry.manifest.filenameTagging ?? { enabled: false, delimiter: '_', slots: [] } });
+          const body = await readJsonBody(req);
+          const result = await saveFilenameProfile(entry, body.profile);
+          if (!result.ok) return sendJson(res, 422, { error: 'Filename profile is invalid.', errors: result.errors });
+          await catalog.rescan();
+          sendJson(res, 200, { profile: body.profile, saved: true });
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Filename profile request failed.' }));
+      });
+      return;
+    }
+
+    const filenamePreviewMatch = /^\/api\/galleries\/([^/]+)\/editor\/filename-preview$/.exec(pathname);
+    if (filenamePreviewMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(filenamePreviewMatch[1]);
+          await catalog.rescan();
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req);
+          const preview = await previewGalleryFilenameTags(entry, body.assetPaths);
+          if (preview.errors.length) return sendJson(res, 422, preview);
+          sendJson(res, 200, preview);
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Filename preview failed.' }));
+      });
+      return;
+    }
+
+    const filenameApplyMatch = /^\/api\/galleries\/([^/]+)\/editor\/filename-apply$/.exec(pathname);
+    if (filenameApplyMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(filenameApplyMatch[1]);
+          await catalog.rescan();
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req);
+          const result = await applyGalleryFilenameTags(entry, body.decisions ?? {});
+          if (!result.ok) return sendJson(res, result.status ?? 422, result);
+          await catalog.rescan();
+          sendJson(res, 200, { applied: true, ...result });
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Filename tag apply failed.' }));
       });
       return;
     }

@@ -39,3 +39,9 @@ The backend is deliberately loopback-bound in this milestone. LAN hosting will b
 The setup screen lists galleries under `galleryRoots`, lets you choose four categories and three values per category, checks all 81 combinations, and blocks incomplete decks with missing-combination diagnostics and alternative value suggestions. The solo board supports 12/15 starting cards, Set checking, mistakes, replacement cards, Deal 3 when the board has no Set, target/exhaustion completion, restart, timer, and the match reward lightbox.
 
 For now, to supply a playable gallery, create or provide a folder under the configured roots with a schema-version-1 `set-gallery.json` and supported image files. Every selected category/value tuple must have a usable image. See [SPEC.md](SPEC.md) for the manifest format. This milestone does not include the visual gallery authoring editor yet.
+
+### Tag existing images from filenames
+
+Select a gallery, open **Tag images from filenames → Configure**, set the delimiter and map each category to a token position, then save the rules. Choose **Preview all gallery images** to review parsed tags. The parser removes the extension, ignores everything after the first hyphen, then skips numeric-only and exact `v`/`V` + digits tokens before mapping positions. Unknown tokens can be mapped once to a value for the whole batch (the mapping is saved as a value alias); if that changes a card's existing value, choose overwrite or keep-existing for that card. Choose **Apply reviewed tags** to register new matching files and update existing records. Preview is read-only; applying writes a backup beside the manifest as `set-gallery.json.bak`.
+
+Filename tagging is available before the full gallery editor milestone. It tags existing files in place and does not copy or rename them.

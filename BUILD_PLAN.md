@@ -101,7 +101,7 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - [x] 1. Gallery manifest and readiness validation
 - [x] 2. Solo game vertical slice
 - [ ] 3. Local gallery authoring editor
-- [ ] 4. Filename-based tagging
+- [x] 4. Filename-based tagging
 - [ ] 5. Permanent history, setup lists, and image voting
 - [ ] 6. Multiplayer room/lobby and live spectator transport
 - [ ] 7. Multiplayer gameplay and same-code rounds
@@ -118,4 +118,8 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Validation after milestones 1–2: `npm test` passed (22 tests, including temporary complete gallery API integration); `npm run build` passed; browser smoke confirmed the setup screen loads and category selection works. There is no bundled playable image gallery yet: the starter gallery remains intentionally empty until the editor milestone or user-provided folder supplies 81 combinations.
 - Known scope: game state is in-memory only until the history milestone. Solo game endpoints are loopback-only; multiplayer APIs arrive later.
 - Checkpoint commit: `133fe77` — `Implement solo Set game vertical slice`.
-- Next: milestone 3, local gallery authoring editor.
+- Milestone 3 local gallery authoring editor was deferred by the user while filename tagging was implemented directly against existing configured folders.
+- Milestone 4 implemented ahead of the editor at the user's request. Added filename extension/hyphen/numeric/vN parser rules, profile mapping API, whole-gallery dry-run preview, shared unknown-token-to-value mapping saved as aliases, per-image conflict overwrite/ignore and skip decisions, and atomic manifest backup/write. Added an optional filename-tagging panel on the game setup screen so existing image folders can be tagged before the full editor.
+- Validation: `npm test` passed (29 tests covering parser exceptions, unknown token alias mapping, existing invalid card repair, conflict decisions, idempotency, batch-wide mappings, and preview/apply HTTP routes); `npm run build` passed. Browser smoke previewed all 81 Hedgehogs image files and surfaced `1h` and `0f` as unknown tokens for the user to map.
+- Known scope: full gallery editor milestone 3 remains deferred by user request. Filename tagging only previews/applies existing supported images in the configured gallery; it does not create categories or values or import files.
+- Next: wait for user direction. Milestone 3 was explicitly deferred; permanent history is milestone 5 if desired.
