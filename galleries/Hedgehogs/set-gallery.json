@@ -6,47 +6,98 @@
     "enabled": true,
     "delimiter": "_",
     "slots": [
-      { "categoryId": "color", "position": 1 },
-      { "categoryId": "hedgehogs", "position": 2 },
-      { "categoryId": "foxes", "position": 3 },
-      { "categoryId": "border", "position": 4 }
+      {
+        "categoryId": "color",
+        "position": 1
+      },
+      {
+        "categoryId": "hedgehogs",
+        "position": 2
+      },
+      {
+        "categoryId": "foxes",
+        "position": 3
+      },
+      {
+        "categoryId": "border",
+        "position": 4
+      }
     ]
-  },  
+  },
   "categories": [
     {
       "id": "color",
       "name": "Color",
       "values": [
-        { "id": "yellow", "label": "Yellow" },
-        { "id": "green", "label": "Green" },
-        { "id": "blue", "label": "Blue" }
+        {
+          "id": "yellow",
+          "label": "Yellow"
+        },
+        {
+          "id": "green",
+          "label": "Green"
+        },
+        {
+          "id": "blue",
+          "label": "Blue"
+        }
       ]
     },
     {
       "id": "hedgehogs",
       "name": "Number of hedgehogs",
       "values": [
-        { "id": "h1", "label": "One" },
-        { "id": "h2", "label": "Two" },
-        { "id": "h3", "label": "Three" }
+        {
+          "id": "1h",
+          "label": "One"
+        },
+        {
+          "id": "2h",
+          "label": "Two"
+        },
+        {
+          "id": "3h",
+          "label": "Three"
+        }
       ]
     },
     {
       "id": "foxes",
       "name": "Number of foxes",
       "values": [
-        { "id": "f0", "label": "None" },
-        { "id": "f1", "label": "One" },
-        { "id": "f2", "label": "Two" }
+        {
+          "id": "0f",
+          "label": "None"
+        },
+        {
+          "id": "1f",
+          "label": "One"
+        },
+        {
+          "id": "2f",
+          "label": "Two"
+        }
       ]
     },
     {
       "id": "border",
       "name": "Boarder",
       "values": [
-        { "id": "none", "label": "None" },
-        { "id": "solid", "label": "Solid" },
-        { "id": "dotted", "label": "Striped", "aliases": ["striped"] }
+        {
+          "id": "none",
+          "label": "None"
+        },
+        {
+          "id": "solid",
+          "label": "Solid"
+        },
+        {
+          "id": "dotted",
+          "label": "Striped",
+          "aliases": [
+            "striped"
+          ]
+        }
       ]
     }
   ],
@@ -56,9 +107,809 @@
       "image": "images/blue_1h_0f_dotted.png",
       "features": {
         "color": "blue",
-        "hedgehogs": "h1",
-        "foxes": "f0",
+        "hedgehogs": "1h",
+        "foxes": "0f",
         "border": "dotted"
+      }
+    },
+    {
+      "id": "file-2c8e4f2a4dba5bf8cfed6be8",
+      "image": "images/blue_1h_0f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-bbb32e75e823a66c4a54dbb7",
+      "image": "images/blue_1h_0f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-57333b96a6965b3dcf8472e0",
+      "image": "images/blue_1h_1f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-bfa455a87d5ba1412c5ff33c",
+      "image": "images/blue_1h_1f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-3d54ef6e6c6c97f4eb2dde6d",
+      "image": "images/blue_1h_1f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-df09670c171b64e92280cab4",
+      "image": "images/blue_1h_2f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-a8643a064d3aefe0b9e17bec",
+      "image": "images/blue_1h_2f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-7ca7f4205d549b331dbdfeb1",
+      "image": "images/blue_1h_2f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-c4a4820e2648d3df5e07d02f",
+      "image": "images/blue_2h_0f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-86b1cde882ce68a9d333d701",
+      "image": "images/blue_2h_0f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-a04b05ad8e36fb5daf9126c7",
+      "image": "images/blue_2h_0f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-a566c323c5d0709bf9cd3e69",
+      "image": "images/blue_2h_1f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-4501497447f4fab0bb4051f2",
+      "image": "images/blue_2h_1f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-aaa72b58fc6a57fccd94e5ff",
+      "image": "images/blue_2h_1f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-1358622eefd24d5f5bbf7609",
+      "image": "images/blue_2h_2f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-5a7602f261e87cfbeb412a39",
+      "image": "images/blue_2h_2f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-8990ac1938999aeb9abebef4",
+      "image": "images/blue_2h_2f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-4afd5619eef39901f5591a5e",
+      "image": "images/blue_3h_0f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-196cc4aa379f4fd9022f0356",
+      "image": "images/blue_3h_0f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-0335b8fc0e2bde36ea457c41",
+      "image": "images/blue_3h_0f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-cf5f6b7949580018cf9034e3",
+      "image": "images/blue_3h_1f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-c10c8716374110b586035943",
+      "image": "images/blue_3h_1f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-cf6309222367e9f7094822ea",
+      "image": "images/blue_3h_1f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-74b25e5c7e52429f54ab01fe",
+      "image": "images/blue_3h_2f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-f74901d80acf43360ce010e2",
+      "image": "images/blue_3h_2f_none.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-31dfaf8e10aebf0a02618610",
+      "image": "images/blue_3h_2f_solid.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-5acefdfb802b2add5cacea64",
+      "image": "images/green_1h_0f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-83016583cf2ad77866428cb2",
+      "image": "images/green_1h_0f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-01a1c9b71d28665afa43e247",
+      "image": "images/green_1h_0f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-750d48ae02212fa0da3ce014",
+      "image": "images/green_1h_1f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-b8a0fb17fb246ea5426c6613",
+      "image": "images/green_1h_1f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-723e60a1b2ba4f4c682e8cff",
+      "image": "images/green_1h_1f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-1dbd3c4c7fa0ef7678e7f49a",
+      "image": "images/green_1h_2f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-b74eff79f6065383ad415cc4",
+      "image": "images/green_1h_2f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-15a270f12893553787d5133b",
+      "image": "images/green_1h_2f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-bb376c7cf842529b7a91bee2",
+      "image": "images/green_2h_0f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-07a8671b9fe6523f7d95e1d2",
+      "image": "images/green_2h_0f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-eb67da884d82954b493282ce",
+      "image": "images/green_2h_0f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-912cbc7102acc2798c9a26ee",
+      "image": "images/green_2h_1f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-de31b0366729fc6915fdd18f",
+      "image": "images/green_2h_1f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-bd452d764bf0c0d4f45866c9",
+      "image": "images/green_2h_1f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-5af23167225467e72cf64656",
+      "image": "images/green_2h_2f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-7a0edd73d019071a654070be",
+      "image": "images/green_2h_2f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-cd0ad8d116ed2f7c4a80d8f3",
+      "image": "images/green_2h_2f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-e63d7be3cce4b355c97c91e8",
+      "image": "images/green_3h_0f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-7741c97c7932ac3da080f929",
+      "image": "images/green_3h_0f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-cfbec957a33f8375112c4083",
+      "image": "images/green_3h_0f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-d333846ff448f56e8b3afc0b",
+      "image": "images/green_3h_1f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-68494c06d1785e72ac7c8214",
+      "image": "images/green_3h_1f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-74f803531d39e19e47fd269a",
+      "image": "images/green_3h_1f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-026b958911a6e10abca6af73",
+      "image": "images/green_3h_2f_dotted.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-4ab76a841abdf5a2a1a6be17",
+      "image": "images/green_3h_2f_none.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-a453cfd30cc70682364a91df",
+      "image": "images/green_3h_2f_solid.png",
+      "features": {
+        "color": "green",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-7dc2292529defd2ca7708342",
+      "image": "images/yellow_1h_0f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-95a2e5da23cda857d5fbf8a3",
+      "image": "images/yellow_1h_0f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-d945e1af56641f720d60fd9a",
+      "image": "images/yellow_1h_0f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-4550690c3add3722a3809149",
+      "image": "images/yellow_1h_1f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-54bc7f25450fc80797e964a9",
+      "image": "images/yellow_1h_1f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-9f0dbfade980ddc729d53edb",
+      "image": "images/yellow_1h_1f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-db554508248066402aaf1996",
+      "image": "images/yellow_1h_2f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-01de5f57100f0c32b14d8ef0",
+      "image": "images/yellow_1h_2f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-98b7a763c933f2207e4e5938",
+      "image": "images/yellow_1h_2f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "1h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-aee97ade180ee7ef75637a0a",
+      "image": "images/yellow_2h_0f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-db5baab732c2cd6eb87cbc7b",
+      "image": "images/yellow_2h_0f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-dab0442fb5bc575f87463526",
+      "image": "images/yellow_2h_0f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-6d73c79c54e68b7a53518dec",
+      "image": "images/yellow_2h_1f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-0b55cccba8279d212eabe80e",
+      "image": "images/yellow_2h_1f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-2fbd34453543c0630508de2a",
+      "image": "images/yellow_2h_1f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-20e8ebc2c51eeb6aaa6ad899",
+      "image": "images/yellow_2h_2f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-929c8d2218ddec39e8b72423",
+      "image": "images/yellow_2h_2f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-9d9659cd83195f379078dc44",
+      "image": "images/yellow_2h_2f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "2h",
+        "foxes": "2f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-8db6bc7e06e7eded8b400894",
+      "image": "images/yellow_3h_0f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-cccccad3ffa5029da41371c1",
+      "image": "images/yellow_3h_0f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-575ba0a2617fc94ab56c2a35",
+      "image": "images/yellow_3h_0f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "0f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-dac839f594ec6c9720ac2091",
+      "image": "images/yellow_3h_1f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-36fa5b56a25e228f70cf2756",
+      "image": "images/yellow_3h_1f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-1a7e892d1fdbb3a0cc41159c",
+      "image": "images/yellow_3h_1f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "1f",
+        "border": "solid"
+      }
+    },
+    {
+      "id": "file-3fc643d3527122990581e206",
+      "image": "images/yellow_3h_2f_dotted.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "dotted"
+      }
+    },
+    {
+      "id": "file-2cbd4b125b72cb5c0a32daf4",
+      "image": "images/yellow_3h_2f_none.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "none"
+      }
+    },
+    {
+      "id": "file-cd7c73e58400906fb0bbe0ed",
+      "image": "images/yellow_3h_2f_solid.png",
+      "features": {
+        "color": "yellow",
+        "hedgehogs": "3h",
+        "foxes": "2f",
+        "border": "solid"
       }
     }
   ]
