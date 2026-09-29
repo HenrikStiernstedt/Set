@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "hedgehog-gallery",
+  "name": "Hedgehogs and foxes",
+  "filenameTagging": {
+    "enabled": true,
+    "delimiter": "_",
+    "slots": [
+      { "categoryId": "color", "position": 1 },
+      { "categoryId": "hedgehogs", "position": 2 },
+      { "categoryId": "foxes", "position": 3 },
+      { "categoryId": "border", "position": 4 }
+    ]
+  },  
+  "categories": [
+    {
+      "id": "color",
+      "name": "Color",
+      "values": [
+        { "id": "yellow", "label": "Yellow" },
+        { "id": "green", "label": "Green" },
+        { "id": "blue", "label": "Blue" }
+      ]
+    },
+    {
+      "id": "hedgehogs",
+      "name": "Number of hedgehogs",
+      "values": [
+        { "id": "h1", "label": "One" },
+        { "id": "h2", "label": "Two" },
+        { "id": "h3", "label": "Three" }
+      ]
+    },
+    {
+      "id": "foxes",
+      "name": "Number of foxes",
+      "values": [
+        { "id": "f0", "label": "None" },
+        { "id": "f1", "label": "One" },
+        { "id": "f2", "label": "Two" }
+      ]
+    },
+    {
+      "id": "border",
+      "name": "Boarder",
+      "values": [
+        { "id": "none", "label": "None" },
+        { "id": "solid", "label": "Solid" },
+        { "id": "dotted", "label": "Striped", "aliases": ["striped"] }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-001",
+      "image": "images/blue_1h_0f_dotted.png",
+      "features": {
+        "color": "blue",
+        "hedgehogs": "h1",
+        "foxes": "f0",
+        "border": "dotted"
+      }
+    }
+  ]
+}
