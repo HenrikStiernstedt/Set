@@ -117,4 +117,5 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Milestone 2 complete: added pure Set/game rules, shuffled 81-card deck creation, opaque per-game image tokens, match/mistake handling, replacement cards, Deal 3/no-Set rules, target/exhaustion completion, restart, and the solo Vue setup/board/reward UI.
 - Validation after milestones 1–2: `npm test` passed (22 tests, including temporary complete gallery API integration); `npm run build` passed; browser smoke confirmed the setup screen loads and category selection works. There is no bundled playable image gallery yet: the starter gallery remains intentionally empty until the editor milestone or user-provided folder supplies 81 combinations.
 - Known scope: game state is in-memory only until the history milestone. Solo game endpoints are loopback-only; multiplayer APIs arrive later.
+- Checkpoint commit: `133fe77` — `Implement solo Set game vertical slice`.
 - Next: milestone 3, local gallery authoring editor.
