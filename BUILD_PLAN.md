@@ -124,4 +124,5 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Known scope: full gallery editor milestone 3 remains deferred by user request. Filename tagging only previews/applies existing supported images in the configured gallery; it does not create categories or values or import files.
 - Checkpoint commit: `ab9fb2d` — `Implement filename-based gallery tagging`.
 - Follow-up UX fix: canonicalize the active four game categories to their order in `set-gallery.json`, independent of selection click order. Regression test added; `npm test` passed (30 tests) and `npm run build` passed.
+- Category-order checkpoint commit: `8463da1` — `Preserve gallery category order in games`.
 - Next: wait for user direction. Milestone 3 was explicitly deferred; permanent history is milestone 5 if desired.
