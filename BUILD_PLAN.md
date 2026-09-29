@@ -98,8 +98,8 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 ## Checklist
 
 - [x] 0. Repository and product-contract preparation
-- [ ] 1. Gallery manifest and readiness validation
-- [ ] 2. Solo game vertical slice
+- [x] 1. Gallery manifest and readiness validation
+- [x] 2. Solo game vertical slice
 - [ ] 3. Local gallery authoring editor
 - [ ] 4. Filename-based tagging
 - [ ] 5. Permanent history, setup lists, and image voting
@@ -113,4 +113,8 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Validation: `npm test` passed (4 security tests); `npm run build` passed; production server served the page at `http://127.0.0.1:3001/` and the UI reported the local health API online. Server was stopped after the smoke test.
 - Decisions: use Node built-in HTTP instead of Express; use system fonts so the shell has no external runtime font dependency; keep Vite and server as separate terminal commands during development.
 - Checkpoint commit: `9b50aff` — `Scaffold Set Gallery milestone 0`.
-- Next: milestone 1, gallery manifest loading and game-readiness validation.
+- Milestone 1 complete: added schema/path validation, configured-root gallery scanning, selected-category readiness, missing/duplicate tuple diagnostics, alternative value suggestions, variation warnings, and safe gallery APIs. Path traversal and unsupported/missing image cases are covered.
+- Milestone 2 complete: added pure Set/game rules, shuffled 81-card deck creation, opaque per-game image tokens, match/mistake handling, replacement cards, Deal 3/no-Set rules, target/exhaustion completion, restart, and the solo Vue setup/board/reward UI.
+- Validation after milestones 1–2: `npm test` passed (22 tests, including temporary complete gallery API integration); `npm run build` passed; browser smoke confirmed the setup screen loads and category selection works. There is no bundled playable image gallery yet: the starter gallery remains intentionally empty until the editor milestone or user-provided folder supplies 81 combinations.
+- Known scope: game state is in-memory only until the history milestone. Solo game endpoints are loopback-only; multiplayer APIs arrive later.
+- Next: milestone 3, local gallery authoring editor.
