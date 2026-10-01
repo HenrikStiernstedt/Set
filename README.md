@@ -15,7 +15,9 @@ npm install
 
 ## Run during development
 
-Open two terminals in the project directory:
+On Windows, run `start-dev.bat` from the project directory. It opens the backend and Vite in separate command windows.
+
+On other platforms, open two terminals in the project directory:
 
 1. Start the backend: `npm run server:watch`
 2. Start Vite: `npm run dev`
