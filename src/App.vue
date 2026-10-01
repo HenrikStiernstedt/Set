@@ -124,8 +124,10 @@ function galleryViewCards() {
   if (!galleryView.value) return [];
   const cards = (() => {
     if (galleryViewFilter.value === 'missing') return galleryView.value.missingCards ?? [];
-    if (galleryViewFilter.value === 'duplicates') return galleryView.value.duplicateImageCards ?? [];
+    if (galleryViewFilter.value === 'duplicates') return galleryView.value.duplicateCards ?? galleryView.value.duplicateImageCards ?? [];
+    if (galleryViewFilter.value === 'images') return galleryView.value.duplicateImageCards ?? [];
     if (galleryViewFilter.value === 'filenames') return galleryView.value.duplicateFilenameCards ?? [];
+    if (galleryViewFilter.value === 'tags') return galleryView.value.duplicateFeatureCards ?? [];
     return galleryView.value.cards ?? [];
   })();
 
@@ -143,7 +145,7 @@ function galleryViewCards() {
     const leftTitle = left?.image ?? left?.id ?? '';
     const rightTitle = right?.image ?? right?.id ?? '';
     if (galleryViewSort.value === 'missing') return (right.missingCategoryIds?.length ?? 0) - (left.missingCategoryIds?.length ?? 0);
-    if (galleryViewSort.value === 'duplicates') return Number(Boolean(right.duplicateImage || right.duplicateFileName)) - Number(Boolean(left.duplicateImage || left.duplicateFileName));
+    if (galleryViewSort.value === 'duplicates') return Number(Boolean(right.duplicateImage || right.duplicateFileName || right.duplicateFeatures)) - Number(Boolean(left.duplicateImage || left.duplicateFileName || left.duplicateFeatures));
     return String(leftTitle).localeCompare(String(rightTitle));
   });
 }
@@ -667,7 +669,9 @@ onUnmounted(() => {
             <div class="gallery-filter-row">
               <button class="gallery-filter" :class="{ active: galleryViewFilter === 'all' }" @click="galleryViewFilter = 'all'">All {{ galleryView.cards.length }}</button>
               <button class="gallery-filter" :class="{ active: galleryViewFilter === 'missing' }" @click="galleryViewFilter = 'missing'">Missing values {{ galleryView.missingCards.length }}</button>
-              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'duplicates' }" @click="galleryViewFilter = 'duplicates'">Duplicate images {{ galleryView.duplicateImageCards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'duplicates' }" @click="galleryViewFilter = 'duplicates'">Duplicate cards {{ galleryView.duplicateCards?.length ?? galleryView.duplicateImageCards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'images' }" @click="galleryViewFilter = 'images'">Duplicate images {{ galleryView.duplicateImageCards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'tags' }" @click="galleryViewFilter = 'tags'">Duplicate tags {{ galleryView.duplicateFeatureCards.length }}</button>
               <button class="gallery-filter" :class="{ active: galleryViewFilter === 'filenames' }" @click="galleryViewFilter = 'filenames'">Duplicate filenames {{ galleryView.duplicateFilenameCards.length }}</button>
             </div>
             <div class="gallery-toolbar">

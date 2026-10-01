@@ -243,6 +243,7 @@ export function createGalleryCatalog(configuredRoots) {
     const cards = [];
     const duplicateImageHashes = new Map();
     const duplicateNames = new Map();
+    const duplicateFeatureAssignments = new Map();
     for (const card of Array.isArray(entry.manifest.cards) ? entry.manifest.cards : []) {
       if (typeof card?.image !== 'string') continue;
       const imagePath = path.isAbsolute(card.image) ? card.image : path.resolve(path.dirname(entry.manifestPath), card.image);
@@ -259,6 +260,13 @@ export function createGalleryCatalog(configuredRoots) {
       const sameName = duplicateNames.get(fileName) ?? [];
       sameName.push(card.id);
       duplicateNames.set(fileName, sameName);
+      const features = card?.features && typeof card.features === 'object' && !Array.isArray(card.features) ? card.features : {};
+      if (Object.keys(features).length) {
+        const featureSignature = JSON.stringify(Object.entries(features).sort(([left], [right]) => left.localeCompare(right)));
+        const sameFeatures = duplicateFeatureAssignments.get(featureSignature) ?? [];
+        sameFeatures.push(card.id);
+        duplicateFeatureAssignments.set(featureSignature, sameFeatures);
+      }
     }
 
     for (const card of Array.isArray(entry.manifest.cards) ? entry.manifest.cards : []) {
@@ -272,6 +280,13 @@ export function createGalleryCatalog(configuredRoots) {
       const duplicateImageIds = digest ? duplicateImageHashes.get(digest)?.filter((value, index, source) => source.indexOf(value) === index) ?? [] : [];
       const fileName = path.basename(card.image ?? '');
       const duplicateFileIds = duplicateNames.get(fileName)?.filter((value, index, source) => source.indexOf(value) === index) ?? [];
+      const features = card?.features && typeof card.features === 'object' && !Array.isArray(card.features) ? card.features : {};
+      const featureSignature = Object.keys(features).length
+        ? JSON.stringify(Object.entries(features).sort(([left], [right]) => left.localeCompare(right)))
+        : null;
+      const duplicateFeatureIds = featureSignature
+        ? duplicateFeatureAssignments.get(featureSignature)?.filter((value, index, source) => source.indexOf(value) === index) ?? []
+        : [];
       const missingCategoryIds = categories
         .filter((category) => typeof category?.id === 'string')
         .filter((category) => !Object.prototype.hasOwnProperty.call(card?.features ?? {}, category.id) || card.features[category.id] === null || card.features[category.id] === undefined)
@@ -288,8 +303,10 @@ export function createGalleryCatalog(configuredRoots) {
         missingCategoryIds,
         duplicateImageIds,
         duplicateFileIds,
+        duplicateFeatureIds,
         duplicateImage: duplicateImageIds.length > 1,
         duplicateFileName: duplicateFileIds.length > 1,
+        duplicateFeatures: duplicateFeatureIds.length > 1,
       });
     }
 
@@ -303,8 +320,10 @@ export function createGalleryCatalog(configuredRoots) {
       })),
       cards,
       missingCards: cards.filter((card) => card.missingCategoryIds.length > 0),
+      duplicateCards: cards.filter((card) => card.duplicateImage || card.duplicateFeatures),
       duplicateImageCards: cards.filter((card) => card.duplicateImage),
       duplicateFilenameCards: cards.filter((card) => card.duplicateFileName),
+      duplicateFeatureCards: cards.filter((card) => card.duplicateFeatures),
     };
   }
 

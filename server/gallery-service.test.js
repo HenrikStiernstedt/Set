@@ -104,6 +104,21 @@ test('gallery endpoints preserve health routes, enforce local access, and redact
   assert.equal((await validation.json()).gallery.validation.valid, true);
 });
 
+test('editor view identifies duplicate feature assignments after card tagging changes', async (t) => {
+  const fixture = await makeFixture(t);
+  const first = fixture.manifest.cards[0];
+  const second = fixture.manifest.cards[1];
+  assert.notDeepEqual(first.features, second.features);
+  second.features = { ...first.features };
+  await fs.writeFile(path.join(fixture.galleryDirectory, 'set-gallery.json'), JSON.stringify(fixture.manifest));
+
+  const catalog = createGalleryCatalog([fixture.root]);
+  const view = await catalog.getEditorView('animals');
+  assert.deepEqual(view.duplicateFeatureCards.map((card) => card.id), [first.id, second.id]);
+  assert.deepEqual(view.duplicateFeatureCards[0].duplicateFeatureIds, [first.id, second.id]);
+  assert.equal(view.duplicateFeatureCards[0].duplicateFeatures, true);
+});
+
 test('solo game API validates setup, starts a game, serves an opaque image, and scores a Set', async (t) => {
   const fixture = await makeFixture(t);
   const server = createSetGalleryServer({ galleryRoots: [fixture.root] });

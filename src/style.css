@@ -147,7 +147,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .editor-category-values > strong { color: #536654; font-size: 11px; }
 .editor-category-values .gallery-value-filter-pills { gap: 7px; }
 .editor-category-values .gallery-value-pill { font-size: 11px; padding: 7px 10px; }
-.editor-dialog-actions { position: sticky; bottom: -1px; display: flex; justify-content: flex-end; gap: 9px; margin: 14px -32px -32px; padding: 12px 32px 16px; border-top: 1px solid #e1e3d9; background: #f9f8f2; }
+.editor-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin: 14px -32px 0; padding: 12px 32px 0; border-top: 1px solid #e1e3d9; background: #f9f8f2; }
 .gallery-lightbox-meta { margin: 16px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .gallery-lightbox-meta div { border: 1px solid #e2e1d7; border-radius: 6px; background: #fffef9; padding: 8px; }
 .gallery-lightbox-meta dt { color: #90988f; font-size: 8px; text-transform: uppercase; }
@@ -182,7 +182,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .setup-api { padding-bottom: 0; }
   .game-options { flex-wrap: wrap; }.start-button { margin: 5px 0 0; }
   .filename-profile-form { grid-template-columns: repeat(2, minmax(120px, 1fr)); }.filename-preview-summary { flex-direction: column; gap: 4px; }.tag-resolution { align-items: stretch; flex-direction: column; }.tag-resolution .form-field { min-width: 0; }
-  .editor-backdrop { padding: 10px; }.gallery-card-editor-dialog { max-height: calc(100dvh - 20px); }.editor-dialog-actions { margin: 14px -16px -18px; padding: 10px 16px 14px; }
+  .editor-backdrop { padding: 10px; }.gallery-card-editor-dialog { max-height: calc(100dvh - 20px); }.editor-dialog-actions { margin: 14px -16px 0; padding: 10px 16px 0; }
   .active-rules { grid-template-columns: 1fr 1fr; }
   .board-grid, .board-grid.expanded-board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .playing-card { padding: 5px; }.playing-card.selected { padding: 4px; }
