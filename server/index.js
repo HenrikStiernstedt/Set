@@ -310,6 +310,38 @@ export function createSetGalleryServer(options = {}) {
       return;
     }
 
+    const fileDropPreviewMatch = /^\/api\/galleries\/([^/]+)\/editor\/file-drop-preview$/.exec(pathname);
+    if (fileDropPreviewMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(fileDropPreviewMatch[1]);
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req);
+          const preview = await previewGalleryFileDrops(entry, Array.isArray(body.files) ? body.files : (body.droppedFiles ?? []));
+          sendJson(res, 200, preview);
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'File drop preview failed.' }));
+      });
+      return;
+    }
+
+    const fileDropApplyMatch = /^\/api\/galleries\/([^/]+)\/editor\/file-drop-apply$/.exec(pathname);
+    if (fileDropApplyMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(fileDropApplyMatch[1]);
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req);
+          const result = await applyGalleryFileDrops(entry, body);
+          if (!result.ok) return sendJson(res, result.status ?? 422, result);
+          await catalog.rescan();
+          sendJson(res, 200, { applied: true, ...result });
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'File drop apply failed.' }));
+      });
+      return;
+    }
+
     const filenameProfileMatch = /^\/api\/galleries\/([^/]+)\/editor\/filename-profile$/.exec(pathname);
     if (filenameProfileMatch && ['GET', 'PATCH'].includes(req.method)) {
       requireLoopback(req, res, () => {

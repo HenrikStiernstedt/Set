@@ -3,6 +3,43 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { validateGalleryManifest } from './gallery-validation.js';
 
+function decodeFilePayload(payload) {
+  if (typeof payload === 'string') {
+    return Buffer.from(payload, 'base64');
+  }
+  if (payload instanceof Uint8Array) return Buffer.from(payload);
+  if (payload instanceof ArrayBuffer) return Buffer.from(payload);
+  if (Array.isArray(payload)) return Buffer.from(payload);
+  return Buffer.alloc(0);
+}
+
+function fileHash(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+function listGalleryAssetHashes(entry) {
+  const galleryDirectory = path.dirname(entry.manifestPath);
+  const files = [];
+  const walk = async (directory) => {
+    let entries;
+    try { entries = await fs.readdir(directory, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      const child = path.join(directory, entry.name);
+      const stat = await fs.stat(child).catch(() => null);
+      if (!stat) continue;
+      if (stat.isDirectory()) await walk(child);
+      else if (stat.isFile()) {
+        const ext = path.extname(child).toLowerCase();
+        if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext)) {
+          const data = await fs.readFile(child);
+          files.push({ absolutePath: child, relativePath: path.relative(galleryDirectory, child).split(path.sep).join('/'), hash: fileHash(data) });
+        }
+      }
+    }
+  };
+  return walk(galleryDirectory).then(() => files);
+}
+
 function isContained(root, target) {
   const relative = path.relative(root, target);
   return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
@@ -274,6 +311,84 @@ export async function applyGalleryFilenameTags(entry, decisions = {}) {
   if (newErrors.length) return { ok: false, status: 422, errors: newErrors };
   await atomicWriteManifest(entry.manifestPath, manifest);
   return { ok: true, createdCount, updatedCount, ignoredCount, totalRecords: manifest.cards.length, remainingValidationErrors: validation.errors };
+}
+
+export async function previewGalleryFileDrops(entry, droppedFiles = []) {
+  if (!entry?.manifest || !entry?.manifestPath || !entry?.allowedRoot) throw new Error('Gallery is unavailable.');
+  const galleryDirectory = path.dirname(entry.manifestPath);
+  const knownAssets = await listGalleryAssetHashes(entry);
+  const files = [];
+  for (const file of Array.isArray(droppedFiles) ? droppedFiles : []) {
+    const name = typeof file?.name === 'string' ? file.name : 'untitled-file';
+    const payload = decodeFilePayload(file?.data ?? file?.content ?? file?.bytes ?? file?.buffer ?? []);
+    const canonicalName = path.basename(name).replaceAll('\\', '/');
+    const hash = fileHash(payload || Buffer.alloc(0));
+    const matches = knownAssets.filter((known) => known.hash === hash);
+    files.push({
+      name: canonicalName,
+      status: matches.length === 0 ? 'new-copy' : matches.length === 1 ? 'existing-match' : 'ambiguous-duplicate',
+      hash,
+      matches: matches.map((match) => ({ relativePath: match.relativePath, absolutePath: match.absolutePath })),
+      fileSize: payload.length,
+    });
+  }
+  return { files, totalFiles: files.length, galleryDir: galleryDirectory };
+}
+
+export async function applyGalleryFileDrops(entry, payload = {}) {
+  const preview = await previewGalleryFileDrops(entry, Array.isArray(payload.files) ? payload.files : (payload.droppedFiles ?? []));
+  const galleryDirectory = path.dirname(entry.manifestPath);
+  const imageDirectory = path.join(galleryDirectory, 'images');
+  await fs.mkdir(imageDirectory, { recursive: true });
+  const decisions = payload.decisions ?? {};
+  let reusedCount = 0;
+  let copiedCount = 0;
+  let skippedCount = 0;
+  const unresolved = [];
+
+  for (const file of preview.files) {
+    const decision = decisions[file.name] ?? decisions[file.hash] ?? (file.status === 'new-copy' ? 'copy' : 'reuse');
+    const input = Array.isArray(payload.files) ? payload.files.find((item) => item.name === file.name) : null;
+    const buffer = decodeFilePayload(input?.data ?? input?.content ?? input?.bytes ?? input?.buffer ?? []);
+
+    if (file.status === 'ambiguous-duplicate') {
+      if (decision === 'skip') { skippedCount += 1; continue; }
+      if (decision === 'copy') {
+        const destination = path.join(imageDirectory, file.name);
+        await fs.writeFile(destination, buffer);
+        copiedCount += 1;
+        continue;
+      }
+      if (decision === 'reuse') {
+        reusedCount += 1;
+        continue;
+      }
+      unresolved.push({ name: file.name, reason: 'ambiguous duplicate asset; select a path or skip.' });
+      continue;
+    }
+
+    if (file.status === 'existing-match') {
+      if (decision === 'skip') { skippedCount += 1; continue; }
+      if (decision === 'copy') {
+        const destination = path.join(imageDirectory, file.name);
+        await fs.writeFile(destination, buffer);
+        copiedCount += 1;
+        continue;
+      }
+      reusedCount += 1;
+      continue;
+    }
+
+    if (file.status === 'new-copy') {
+      if (decision === 'skip') { skippedCount += 1; continue; }
+      const destination = path.join(imageDirectory, file.name);
+      await fs.writeFile(destination, buffer);
+      copiedCount += 1;
+    }
+  }
+
+  if (unresolved.length) return { ok: false, status: 409, applied: false, unresolved, reusedCount: 0, copiedCount: 0, skippedCount };
+  return { ok: true, applied: true, reusedCount, copiedCount, skippedCount, totalRecords: 0 };
 }
 
 export async function saveFilenameProfile(entry, profile) {

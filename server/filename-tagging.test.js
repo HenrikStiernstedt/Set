@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createGalleryCatalog } from './gallery-service.js';
 import { createSetGalleryServer } from './index.js';
+import { applyGalleryFileDrops, previewGalleryFileDrops } from './filename-tagging.js';
 import { applyGalleryFilenameTags, parseFilenameTags, previewGalleryFilenameTags } from './filename-tagging.js';
 
 function categories() {
@@ -176,4 +177,33 @@ test('local filename preview/apply endpoints persist tags and stay loopback prot
   });
   assert.equal(applyResponse.status, 200);
   assert.equal((await applyResponse.json()).applied, true);
+});
+
+test('drop preview reuses identical bytes and only copies genuinely new imports', async (t) => {
+  const fixture = await makeGallery(t);
+  const galleryFile = path.join(fixture.galleryDirectory, 'images', fixture.filename);
+  const duplicated = await fs.readFile(galleryFile);
+  const newBytes = Buffer.from('brand-new image');
+  const preview = await previewGalleryFileDrops(fixture.entry, [
+    { name: fixture.filename, data: duplicated.toString('base64') },
+    { name: 'new_blue_1h_0f_solid.png', data: newBytes.toString('base64') },
+  ]);
+  assert.equal(preview.files.length, 2);
+  assert.equal(preview.files[0].status, 'existing-match');
+  assert.equal(preview.files[1].status, 'new-copy');
+
+  const applied = await applyGalleryFileDrops(fixture.entry, {
+    files: [
+      { name: fixture.filename, data: duplicated.toString('base64') },
+      { name: 'new_blue_1h_0f_solid.png', data: newBytes.toString('base64') },
+    ],
+    decisions: {
+      'new_blue_1h_0f_solid.png': 'copy',
+      [fixture.filename]: 'reuse',
+    },
+  });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.copiedCount, 1);
+  assert.equal(applied.reusedCount, 1);
+  assert.ok((await fs.stat(path.join(fixture.galleryDirectory, 'images', 'new_blue_1h_0f_solid.png'))).isFile());
 });

@@ -45,11 +45,13 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 
 ### 3. Local gallery authoring editor
 
-- Implement loopback-only editor screens and endpoints, category/value create/rename/delete, file browser, explicit rescan, single/batch manual tagging, previews, conflict choices, safe manifest writes/backups, and external-edit detection.
+- Implement a loopback-only gallery viewer and diagnostics screen: browse all cards, sort/group by category/value, filter missing values, duplicate hashes, duplicate filenames, invalid feature objects, and incomplete card records. Add a lightweight inspection panel so the user can see the category/value state for each image before editing.
+- Add a fullscreen lightbox for the gallery view: click a card to open a larger image overlay, support close/escape, and keep keyboard-friendly focus handling while the lightbox is open.
+- Implement category/value create/rename/delete, file browser, explicit rescan, single/batch manual tagging, previews, conflict choices, safe manifest writes/backups, and external-edit detection.
 - Implement desktop file drop as preview/apply: content-match dropped bytes against all gallery assets, reuse a unique existing asset, ask when duplicate identical files are ambiguous, and copy only new content. Ensure cancel/expiry cleans staged data.
 - Keep file path/manifest mutation checks enforced server-side, not merely hidden in Vue.
 
-**Done when:** tests prove local vs remote access boundaries, repeated drop reuses the existing record, genuinely new images import once, ambiguous duplicates require a choice, cancellation leaves no gallery changes, and manifest writes survive malformed/external-edit scenarios safely.
+**Done when:** tests prove local vs remote access boundaries, the gallery browser surfaces missing values and duplicate records, the lightbox can open/close cleanly, repeated drop reuses the existing record, genuinely new images import once, ambiguous duplicates require a choice, cancellation leaves no gallery changes, and manifest writes survive malformed/external-edit scenarios safely.
 
 ### 4. Filename-based tagging
 
