@@ -33,6 +33,12 @@ const galleryViewFilter = ref('all');
 const galleryViewSort = ref('file');
 const galleryViewValueFilter = ref({});
 const galleryLightboxCard = ref(null);
+const galleryEditCard = ref(null);
+const galleryEditValues = ref({});
+const galleryImageMaximized = ref(false);
+const galleryEditorBusy = ref(false);
+const galleryEditorError = ref('');
+const galleryImageInput = ref(null);
 const message = ref('');
 const messageType = ref('');
 const busy = ref(false);
@@ -96,6 +102,7 @@ function chooseGallery(galleryId) {
   galleryView.value = null;
   galleryViewOpen.value = false;
   galleryLightboxCard.value = null;
+  galleryEditCard.value = null;
   void loadFilenameProfile(galleryId);
   void refreshReadiness();
 }
@@ -153,6 +160,101 @@ function galleryCardImageUrl(card) {
   return `/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/images/${encodeURIComponent(card.image)}`;
 }
 
+function openGalleryCard(card) {
+  galleryLightboxCard.value = card;
+  galleryImageMaximized.value = false;
+  galleryEditorError.value = '';
+}
+
+function openGalleryCardEditor() {
+  if (!galleryLightboxCard.value) return;
+  galleryEditCard.value = galleryLightboxCard.value;
+  galleryEditValues.value = { ...(galleryEditCard.value.featureSummary ?? {}) };
+  galleryLightboxCard.value = null;
+  galleryEditorError.value = '';
+}
+
+function returnToGalleryImage() {
+  galleryLightboxCard.value = galleryEditCard.value;
+  galleryEditCard.value = null;
+  galleryImageMaximized.value = false;
+}
+
+function selectGalleryEditValue(categoryId, valueId) {
+  galleryEditValues.value = { ...galleryEditValues.value, [categoryId]: valueId };
+}
+
+async function refreshGalleryEditorView(cardId = galleryEditCard.value?.id ?? galleryLightboxCard.value?.id) {
+  if (!activeGallery.value) return;
+  galleryView.value = await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/view`);
+  if (cardId) {
+    const refreshed = galleryView.value.cards.find((card) => card.id === cardId) ?? null;
+    if (galleryEditCard.value?.id === cardId) galleryEditCard.value = refreshed;
+    if (galleryLightboxCard.value?.id === cardId) galleryLightboxCard.value = refreshed;
+  }
+}
+
+async function saveGalleryCardAssignment() {
+  if (!activeGallery.value || !galleryEditCard.value) return;
+  const assignments = Object.fromEntries(Object.entries(galleryEditValues.value).filter(([, valueId]) => Boolean(valueId)));
+  if (!Object.keys(assignments).length) return;
+  galleryEditorBusy.value = true;
+  galleryEditorError.value = '';
+  const decisions = Object.fromEntries(Object.keys(assignments).map((categoryId) => [categoryId, 'overwrite']));
+  try {
+    const result = await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/assignments`, {
+      method: 'POST',
+      body: JSON.stringify({ cardId: galleryEditCard.value.id, assignments, decisions }),
+    });
+    await refreshGalleryEditorView(galleryEditCard.value.id);
+    galleryEditValues.value = { ...(galleryEditCard.value?.featureSummary ?? {}) };
+    showMessage(result.changed ? 'Card assignment saved.' : 'No changes were needed.', 'info');
+  } catch (error) {
+    galleryEditorError.value = error.message;
+    if (error.status === 409 && !error.data?.conflicts) {
+      try { await loadGalleries(); await refreshGalleryEditorView(galleryEditCard.value?.id); } catch { /* Keep the original save error visible. */ }
+    }
+  } finally {
+    galleryEditorBusy.value = false;
+  }
+}
+
+function fileAsBase64(file) {
+  return file.arrayBuffer().then((buffer) => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+    }
+    return btoa(binary);
+  });
+}
+
+async function replaceGalleryCardImage(file) {
+  if (!file || !activeGallery.value || !galleryEditCard.value) return;
+  galleryEditorBusy.value = true;
+  galleryEditorError.value = '';
+  try {
+    await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/cards/${encodeURIComponent(galleryEditCard.value.id)}/image`, {
+      method: 'POST',
+      body: JSON.stringify({ name: file.name, data: await fileAsBase64(file) }),
+    });
+    await refreshGalleryEditorView(galleryEditCard.value.id);
+    showMessage('Card image replaced.', 'info');
+  } catch (error) {
+    galleryEditorError.value = error.message;
+  } finally {
+    galleryEditorBusy.value = false;
+    if (galleryImageInput.value) galleryImageInput.value.value = '';
+  }
+}
+
+function onGalleryImageDrop(event) {
+  const file = [...(event.dataTransfer?.files ?? [])].find((item) => item.type.startsWith('image/'));
+  if (file) void replaceGalleryCardImage(file);
+}
+
 function galleryNavigationItems() {
   return galleryViewCards();
 }
@@ -161,7 +263,7 @@ function openGalleryCardAt(index) {
   const items = galleryNavigationItems();
   if (!items.length) return;
   const nextIndex = ((index % items.length) + items.length) % items.length;
-  galleryLightboxCard.value = items[nextIndex];
+  openGalleryCard(items[nextIndex]);
 }
 
 function nextGalleryCard() {
@@ -459,9 +561,10 @@ function showMessage(text, type) {
 }
 
 function onKeydown(event) {
-  if (event.key === 'Escape' && (lightboxOpen.value || galleryLightboxCard.value)) {
+  if (event.key === 'Escape' && (lightboxOpen.value || galleryLightboxCard.value || galleryEditCard.value)) {
     if (lightboxOpen.value) dismissReward();
     if (galleryLightboxCard.value) galleryLightboxCard.value = null;
+    if (galleryEditCard.value) galleryEditCard.value = null;
     return;
   }
 
@@ -586,9 +689,10 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="gallery-grid">
-              <button v-for="card in galleryViewCards()" :key="card.id" class="gallery-thumb" @click="galleryLightboxCard = card">
+              <button v-for="card in galleryViewCards()" :key="card.id" class="gallery-thumb" :aria-label="`Edit card ${card.id}`" @click="openGalleryCard(card)">
                 <img :src="galleryCardImageUrl(card)" :alt="`Gallery card ${card.id}`" />
                 <span class="gallery-thumb-meta">{{ card.missingCategoryIds.length ? `Missing ${card.missingCategoryIds.length}` : 'Complete' }}</span>
+                <span class="gallery-thumb-edit">Edit card</span>
               </button>
             </div>
           </div>
@@ -722,22 +826,57 @@ onUnmounted(() => {
 
     <Transition name="fade">
       <div v-if="galleryLightboxCard" class="lightbox-backdrop" role="presentation" @click.self="galleryLightboxCard = null">
-        <section class="reward-lightbox" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
+        <section class="reward-lightbox gallery-image-lightbox" :class="{ maximized: galleryImageMaximized }" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
           <button class="lightbox-close" aria-label="Close gallery image" @click="galleryLightboxCard = null">×</button>
           <p class="eyebrow">GALLERY CARD</p>
           <h2 id="gallery-lightbox-title">{{ galleryLightboxCard.id }}</h2>
-          <div class="gallery-lightbox-path">{{ (galleryLightboxCard.directory || '(root)').replace(/\s+/g, '') }}/{{ (galleryLightboxCard.filename || galleryLightboxCard.image || '').replace(/\s+/g, '') }}</div>
+          <div class="gallery-lightbox-path">{{ galleryLightboxCard.directory || '(root)' }}/{{ galleryLightboxCard.filename || galleryLightboxCard.image || '' }}</div>
           <div class="gallery-lightbox-nav">
             <button class="secondary-button" @click="previousGalleryCard">← Previous</button>
             <button class="secondary-button" @click="nextGalleryCard">Next →</button>
+            <button class="secondary-button" @click="galleryImageMaximized = !galleryImageMaximized">{{ galleryImageMaximized ? 'Fit to dialog' : 'Maximize image' }}</button>
           </div>
           <img class="gallery-lightbox-image" :src="galleryCardImageUrl(galleryLightboxCard)" :alt="`Large gallery image ${galleryLightboxCard.id}`" />
           <dl class="gallery-lightbox-meta">
             <div v-for="category in activeGallery?.categories ?? []" :key="category.id">
               <dt>{{ category.name }}</dt>
-              <dd>{{ galleryLightboxCard.featureSummary?.[category.id] ?? 'Missing' }}</dd>
+              <dd>{{ galleryLightboxCard.featureSummary?.[category.id] ? valueName(category.id, galleryLightboxCard.featureSummary[category.id]) : 'Missing' }}</dd>
             </div>
           </dl>
+          <div class="gallery-lightbox-actions"><button class="primary-button" @click="openGalleryCardEditor">Edit this card</button></div>
+        </section>
+      </div>
+    </Transition>
+
+    <Transition name="fade">
+      <div v-if="galleryEditCard" class="lightbox-backdrop editor-backdrop" role="presentation" @click.self="galleryEditCard = null">
+        <section class="reward-lightbox gallery-card-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="card-editor-title">
+          <button class="lightbox-close" aria-label="Close card editor" @click="galleryEditCard = null">×</button>
+          <p class="eyebrow">EDIT GALLERY CARD</p>
+          <h2 id="card-editor-title">{{ galleryEditCard.id }}</h2>
+          <div class="gallery-edit-preview" @dragover.prevent @drop.prevent="onGalleryImageDrop">
+            <img :src="galleryCardImageUrl(galleryEditCard)" :alt="`Preview of ${galleryEditCard.filename}`" />
+            <span>Drop an image here to replace this one</span>
+          </div>
+          <section class="card-assignment-editor" aria-labelledby="card-assignment-heading">
+            <div class="editor-section-heading"><h3 id="card-assignment-heading">Choose values</h3><span>Click one value in each category. Saving replaces any existing value.</span></div>
+            <div v-for="category in activeGallery?.categories ?? []" :key="category.id" class="editor-category-values">
+              <strong>{{ category.name }}</strong>
+              <div class="gallery-value-filter-pills">
+                <button v-for="value in category.values" :key="value.id" class="gallery-value-pill" :class="{ active: galleryEditValues[category.id] === value.id }" :aria-pressed="galleryEditValues[category.id] === value.id" @click="selectGalleryEditValue(category.id, value.id)">{{ value.label }}</button>
+              </div>
+            </div>
+          </section>
+          <div class="card-replace-controls">
+            <button class="secondary-button" :disabled="galleryEditorBusy" @click="galleryImageInput?.click()">{{ galleryEditorBusy ? 'Saving…' : 'Choose replacement image' }}</button>
+            <input ref="galleryImageInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp" @change="replaceGalleryCardImage($event.target.files?.[0])" />
+            <span>PNG, JPEG, GIF, or WebP · up to 8 MB</span>
+          </div>
+          <p v-if="galleryEditorError" class="error-text" role="alert">{{ galleryEditorError }}</p>
+          <div class="editor-dialog-actions">
+            <button class="secondary-button" :disabled="galleryEditorBusy" @click="returnToGalleryImage">Back to image</button>
+            <button class="primary-button" :disabled="galleryEditorBusy || !Object.keys(galleryEditValues).some((id) => galleryEditValues[id])" @click="saveGalleryCardAssignment">{{ galleryEditorBusy ? 'Saving…' : 'Save changes' }}</button>
+          </div>
         </section>
       </div>
     </Transition>

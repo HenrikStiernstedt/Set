@@ -45,13 +45,13 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 
 ### 3. Local gallery authoring editor
 
-- Implement a loopback-only gallery viewer and diagnostics screen: browse all cards, sort/group by category/value, filter missing values, duplicate hashes, duplicate filenames, invalid feature objects, and incomplete card records. Add a lightweight inspection panel so the user can see the category/value state for each image before editing.
-- Add a fullscreen lightbox for the gallery view: click a card to open a larger image overlay, support close/escape, and keep keyboard-friendly focus handling while the lightbox is open.
+- Implement a loopback-only gallery viewer and diagnostics screen: browse all cards, sort/group by category/value, filter missing values, duplicate hashes, duplicate filenames, invalid feature objects, and incomplete card records. Add a lightweight inspection panel showing each image’s category/value state and its file path within the gallery tree before editing.
+- Add a fullscreen lightbox for the gallery view: click a card to open a larger image overlay, support close/escape, show the current subfolder and filename, and support next/previous browsing in the filtered gallery with keyboard arrow controls.
 - Implement category/value create/rename/delete, file browser, explicit rescan, single/batch manual tagging, previews, conflict choices, safe manifest writes/backups, and external-edit detection.
 - Implement desktop file drop as preview/apply: content-match dropped bytes against all gallery assets, reuse a unique existing asset, ask when duplicate identical files are ambiguous, and copy only new content. Ensure cancel/expiry cleans staged data.
 - Keep file path/manifest mutation checks enforced server-side, not merely hidden in Vue.
 
-**Done when:** tests prove local vs remote access boundaries, the gallery browser surfaces missing values and duplicate records, the lightbox can open/close cleanly, repeated drop reuses the existing record, genuinely new images import once, ambiguous duplicates require a choice, cancellation leaves no gallery changes, and manifest writes survive malformed/external-edit scenarios safely.
+**Done when:** tests prove local vs remote access boundaries, the gallery browser surfaces missing values and duplicate records, the lightbox can open/close cleanly and navigate filtered cards with keys/buttons, repeated drop reuses the existing record, genuinely new images import once, ambiguous duplicates require a choice, cancellation leaves no gallery changes, and manifest writes survive malformed/external-edit scenarios safely.
 
 ### 4. Filename-based tagging
 
@@ -128,4 +128,7 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Follow-up UX fix: canonicalize the active four game categories to their order in `set-gallery.json`, independent of selection click order. Regression test added; `npm test` passed (30 tests) and `npm run build` passed.
 - Category-order checkpoint commit: `8463da1` — `Preserve gallery category order in games`.
 - Setup default behavior: on gallery selection, preselect all categories and all values; users uncheck down to four categories and three values per category. Readiness checks immediately for the initially selected setup. Verified in browser with the 81-card Hedgehogs gallery; all 30 tests and production build pass.
-- Next: wait for user direction. Milestone 3 was explicitly deferred; permanent history is milestone 5 if desired.
+- Gallery viewer/editor slice started: the creator-only gallery view now supports opt-in browsing, filters by category/value and diagnostics, sort controls, and a fullscreen lightbox showing the exact file path/folder plus next/previous traversal with arrow keys.
+- Gallery editor mutation slice complete: added explicit per-card editing from the viewer lightbox, manual category/value assignment with required overwrite/ignore conflict decisions, and replacement-image drop/file selection. Server validates card/category/value IDs, canonical image/root containment, image type/signature and upload size; replacement changes only the image reference, preserving all other card properties. Manifest writes now share serialized atomic backup persistence and reject invalid/external stale edits.
+- Validation: `npm test` passed (36 tests, including assignment conflict/validation, replacement metadata preservation and bad-content rejection, stale external-edit protection, and local editor API routes); `npm run build` passed; editor files report no errors.
+- Remaining milestone 3 work: category/value create/rename/delete, file browser and explicit rescan workflows, and completing the staged desktop-import preview/apply lifecycle and its ambiguity/cancel cleanup requirements. Milestone 3 remains unchecked.

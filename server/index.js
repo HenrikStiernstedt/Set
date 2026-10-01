@@ -7,7 +7,8 @@ import { requireLoopback } from './security.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
 import { createSoloGame, dealThree, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
-import { applyGalleryFilenameTags, previewGalleryFilenameTags, saveFilenameProfile } from './filename-tagging.js';
+import { applyGalleryFileDrops, applyGalleryFilenameTags, previewGalleryFileDrops, previewGalleryFilenameTags, saveFilenameProfile } from './filename-tagging.js';
+import { assignGalleryCardValues, replaceGalleryCardImage } from './editor-mutations.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(currentDir, '..', 'dist');
@@ -321,6 +322,43 @@ export function createSetGalleryServer(options = {}) {
           const preview = await previewGalleryFileDrops(entry, Array.isArray(body.files) ? body.files : (body.droppedFiles ?? []));
           sendJson(res, 200, preview);
         })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'File drop preview failed.' }));
+      });
+      return;
+    }
+
+    const editorAssignmentsMatch = /^\/api\/galleries\/([^/]+)\/editor\/assignments$/.exec(pathname);
+    if (editorAssignmentsMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(editorAssignmentsMatch[1]);
+          await catalog.rescan();
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req);
+          const result = await assignGalleryCardValues(entry, body);
+          if (!result.ok) return sendJson(res, result.status ?? 422, result);
+          if (result.changed) await catalog.rescan();
+          sendJson(res, 200, { saved: true, ...result });
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Assignment update failed.' }));
+      });
+      return;
+    }
+
+    const editorImageReplaceMatch = /^\/api\/galleries\/([^/]+)\/editor\/cards\/([^/]+)\/image$/.exec(pathname);
+    if (editorImageReplaceMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(editorImageReplaceMatch[1]);
+          const cardId = decodeURIComponent(editorImageReplaceMatch[2]);
+          await catalog.rescan();
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const body = await readJsonBody(req, 12 * 1024 * 1024);
+          const result = await replaceGalleryCardImage(entry, { ...body, cardId });
+          if (!result.ok) return sendJson(res, result.status ?? 422, result);
+          await catalog.rescan();
+          sendJson(res, 200, { saved: true, ...result });
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Image replacement failed.' }));
       });
       return;
     }

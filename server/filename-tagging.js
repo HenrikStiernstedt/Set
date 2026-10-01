@@ -1,7 +1,8 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { validateGalleryManifest } from './gallery-validation.js';
+import { writeManifestSafely } from './manifest-store.js';
 
 function decodeFilePayload(payload) {
   if (typeof payload === 'string') {
@@ -224,21 +225,6 @@ export async function previewGalleryFilenameTags(entry, selectedPaths) {
   };
 }
 
-async function atomicWriteManifest(manifestPath, manifest) {
-  const directory = path.dirname(manifestPath);
-  const backupPath = `${manifestPath}.bak`;
-  const temporary = path.join(directory, `.set-gallery-${randomUUID()}.tmp`);
-  const original = await fs.readFile(manifestPath);
-  await fs.writeFile(backupPath, original);
-  try {
-    await fs.writeFile(temporary, `${JSON.stringify(manifest, null, 2)}\n`, { flag: 'wx' });
-    await fs.rename(temporary, manifestPath);
-  } catch (error) {
-    await fs.rm(temporary, { force: true });
-    throw error;
-  }
-}
-
 export async function applyGalleryFilenameTags(entry, decisions = {}) {
   const preview = await previewGalleryFilenameTags(entry);
   if (preview.errors.length) return { ok: false, status: 422, errors: preview.errors };
@@ -309,7 +295,7 @@ export async function applyGalleryFilenameTags(entry, decisions = {}) {
   const originalErrors = new Set(validateGalleryManifest(entry.manifest).errors.map((error) => `${error.code}:${error.location}`));
   const newErrors = validation.errors.filter((error) => !originalErrors.has(`${error.code}:${error.location}`));
   if (newErrors.length) return { ok: false, status: 422, errors: newErrors };
-  await atomicWriteManifest(entry.manifestPath, manifest);
+  await writeManifestSafely(entry, manifest);
   return { ok: true, createdCount, updatedCount, ignoredCount, totalRecords: manifest.cards.length, remainingValidationErrors: validation.errors };
 }
 
@@ -397,6 +383,6 @@ export async function saveFilenameProfile(entry, profile) {
   manifest.filenameTagging = profile;
   const validation = validateGalleryManifest(manifest);
   if (!validation.valid) return { ok: false, errors: validation.errors };
-  await atomicWriteManifest(entry.manifestPath, manifest);
+  await writeManifestSafely(entry, manifest);
   return { ok: true };
 }
