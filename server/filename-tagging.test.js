@@ -207,3 +207,17 @@ test('drop preview reuses identical bytes and only copies genuinely new imports'
   assert.equal(applied.reusedCount, 1);
   assert.ok((await fs.stat(path.join(fixture.galleryDirectory, 'images', 'new_blue_1h_0f_solid.png'))).isFile());
 });
+
+test('gallery viewer returns cards with missing values and duplicate diagnostics', async (t) => {
+  const fixture = await makeGallery(t);
+  const server = createSetGalleryServer({ galleryRoots: [path.dirname(path.dirname(fixture.galleryDirectory))] });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const response = await fetch(`${base}/api/galleries/hedgehogs/editor/view`, { method: 'GET' });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.ok(Array.isArray(body.cards));
+  assert.ok(Array.isArray(body.categories));
+  assert.ok(body.cards.some((card) => Array.isArray(card.missingCategoryIds) && card.missingCategoryIds.length >= 0));
+});

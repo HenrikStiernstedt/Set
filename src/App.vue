@@ -27,6 +27,12 @@ const selectedCardIds = ref([]);
 const matchedCards = ref([]);
 const lightboxOpen = ref(false);
 const lightboxCloseButton = ref(null);
+const galleryView = ref(null);
+const galleryViewOpen = ref(false);
+const galleryViewFilter = ref('all');
+const galleryViewSort = ref('file');
+const galleryViewValueFilter = ref({});
+const galleryLightboxCard = ref(null);
 const message = ref('');
 const messageType = ref('');
 const busy = ref(false);
@@ -87,8 +93,89 @@ function chooseGallery(galleryId) {
   showFilenameTagging.value = false;
   filenamePreview.value = null;
   filenameError.value = '';
+  galleryView.value = null;
+  galleryViewOpen.value = false;
+  galleryLightboxCard.value = null;
   void loadFilenameProfile(galleryId);
   void refreshReadiness();
+}
+
+async function openGalleryViewer() {
+  if (!activeGallery.value) return;
+  try {
+    galleryView.value = await requestJson(`/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/view`);
+    galleryViewOpen.value = true;
+    galleryViewFilter.value = 'all';
+    galleryViewSort.value = 'file';
+    galleryLightboxCard.value = null;
+  } catch (error) {
+    showMessage(error.message || 'Gallery view unavailable.', 'error');
+  }
+}
+
+function galleryViewCards() {
+  if (!galleryView.value) return [];
+  const cards = (() => {
+    if (galleryViewFilter.value === 'missing') return galleryView.value.missingCards ?? [];
+    if (galleryViewFilter.value === 'duplicates') return galleryView.value.duplicateImageCards ?? [];
+    if (galleryViewFilter.value === 'filenames') return galleryView.value.duplicateFilenameCards ?? [];
+    return galleryView.value.cards ?? [];
+  })();
+
+  const filtered = [...cards].filter((card) => {
+    const featureSummary = card.featureSummary ?? {};
+    return Object.entries(galleryViewValueFilter.value).every(([categoryId, selectedValues]) => {
+      const selected = Array.isArray(selectedValues) ? selectedValues : [];
+      if (!selected.length) return true;
+      const actual = featureSummary[categoryId];
+      return selected.includes(actual);
+    });
+  });
+
+  return filtered.sort((left, right) => {
+    const leftTitle = left?.image ?? left?.id ?? '';
+    const rightTitle = right?.image ?? right?.id ?? '';
+    if (galleryViewSort.value === 'missing') return (right.missingCategoryIds?.length ?? 0) - (left.missingCategoryIds?.length ?? 0);
+    if (galleryViewSort.value === 'duplicates') return Number(Boolean(right.duplicateImage || right.duplicateFileName)) - Number(Boolean(left.duplicateImage || left.duplicateFileName));
+    return String(leftTitle).localeCompare(String(rightTitle));
+  });
+}
+
+function applyGalleryValueFilter(categoryId, valueId) {
+  const current = galleryViewValueFilter.value[categoryId] ?? [];
+  const next = current.includes(valueId) ? current.filter((id) => id !== valueId) : [...current, valueId];
+  if (next.length) galleryViewValueFilter.value[categoryId] = next;
+  else delete galleryViewValueFilter.value[categoryId];
+}
+
+function galleryCardImageUrl(card) {
+  if (!activeGallery.value || !card?.image) return '';
+  return `/api/galleries/${encodeURIComponent(activeGallery.value.id)}/editor/images/${encodeURIComponent(card.image)}`;
+}
+
+function galleryNavigationItems() {
+  return galleryViewCards();
+}
+
+function openGalleryCardAt(index) {
+  const items = galleryNavigationItems();
+  if (!items.length) return;
+  const nextIndex = ((index % items.length) + items.length) % items.length;
+  galleryLightboxCard.value = items[nextIndex];
+}
+
+function nextGalleryCard() {
+  if (!galleryLightboxCard.value) return;
+  const items = galleryNavigationItems();
+  const currentIndex = items.findIndex((card) => card.id === galleryLightboxCard.value.id);
+  openGalleryCardAt(currentIndex + 1);
+}
+
+function previousGalleryCard() {
+  if (!galleryLightboxCard.value) return;
+  const items = galleryNavigationItems();
+  const currentIndex = items.findIndex((card) => card.id === galleryLightboxCard.value.id);
+  openGalleryCardAt(currentIndex - 1);
 }
 
 async function loadFilenameProfile(galleryId) {
@@ -372,7 +459,23 @@ function showMessage(text, type) {
 }
 
 function onKeydown(event) {
-  if (event.key === 'Escape' && lightboxOpen.value) dismissReward();
+  if (event.key === 'Escape' && (lightboxOpen.value || galleryLightboxCard.value)) {
+    if (lightboxOpen.value) dismissReward();
+    if (galleryLightboxCard.value) galleryLightboxCard.value = null;
+    return;
+  }
+
+  if (galleryLightboxCard.value && (event.key === 'ArrowRight' || event.key === 'PageDown')) {
+    event.preventDefault();
+    nextGalleryCard();
+    return;
+  }
+
+  if (galleryLightboxCard.value && (event.key === 'ArrowLeft' || event.key === 'PageUp')) {
+    event.preventDefault();
+    previousGalleryCard();
+    return;
+  }
 }
 
 let lastFocusedElement;
@@ -455,8 +558,44 @@ onUnmounted(() => {
           </div>
         </section>
 
+        <section v-if="activeGallery" class="gallery-view-panel" aria-labelledby="gallery-view-heading">
+          <div class="section-title-row"><div><p class="eyebrow">02 / GALLERY VIEW</p><h2 id="gallery-view-heading">Inspect gallery records</h2></div><button class="secondary-button" @click="openGalleryViewer">Open gallery view</button></div>
+          <div v-if="galleryViewOpen && galleryView" class="gallery-view-body">
+            <div class="gallery-filter-row">
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'all' }" @click="galleryViewFilter = 'all'">All {{ galleryView.cards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'missing' }" @click="galleryViewFilter = 'missing'">Missing values {{ galleryView.missingCards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'duplicates' }" @click="galleryViewFilter = 'duplicates'">Duplicate images {{ galleryView.duplicateImageCards.length }}</button>
+              <button class="gallery-filter" :class="{ active: galleryViewFilter === 'filenames' }" @click="galleryViewFilter = 'filenames'">Duplicate filenames {{ galleryView.duplicateFilenameCards.length }}</button>
+            </div>
+            <div class="gallery-toolbar">
+              <label class="form-field inline-form-field">Sort
+                <select v-model="galleryViewSort">
+                  <option value="file">File name</option>
+                  <option value="missing">Missing values</option>
+                  <option value="duplicates">Duplicates first</option>
+                </select>
+              </label>
+              <button class="secondary-button" @click="galleryViewOpen = false">Close</button>
+            </div>
+            <div class="gallery-value-filters">
+              <div v-for="category in (galleryView?.categories ?? [])" :key="category.id" class="gallery-value-filter-group">
+                <strong>{{ category.name }}</strong>
+                <div class="gallery-value-filter-pills">
+                  <button v-for="value in category.values" :key="value.id" class="gallery-value-pill" :class="{ active: (galleryViewValueFilter[category.id] ?? []).includes(value.id) }" @click="applyGalleryValueFilter(category.id, value.id)">{{ value.label }}</button>
+                </div>
+              </div>
+            </div>
+            <div class="gallery-grid">
+              <button v-for="card in galleryViewCards()" :key="card.id" class="gallery-thumb" @click="galleryLightboxCard = card">
+                <img :src="galleryCardImageUrl(card)" :alt="`Gallery card ${card.id}`" />
+                <span class="gallery-thumb-meta">{{ card.missingCategoryIds.length ? `Missing ${card.missingCategoryIds.length}` : 'Complete' }}</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section v-if="activeGallery" class="category-setup" aria-labelledby="category-heading">
-          <div class="section-title-row"><div><p class="eyebrow">02 / GAME RULES</p><h2 id="category-heading">Choose four categories</h2></div><span class="selection-counter">{{ selectedCategoryIds.length }} <span>selected · choose 4</span></span></div>
+          <div class="section-title-row"><div><p class="eyebrow">03 / GAME RULES</p><h2 id="category-heading">Choose four categories</h2></div><span class="selection-counter">{{ selectedCategoryIds.length }} <span>selected · choose 4</span></span></div>
           <p class="helper-copy">Only these four categories determine whether three cards make a Set. Other tags in the gallery do not affect this game.</p>
           <div class="category-list">
             <article v-for="category in activeGallery.categories" :key="category.id" class="category-card" :class="{ chosen: selectedCategoryIds.includes(category.id), disabled: !selectedCategoryIds.includes(category.id) && selectedCategoryIds.length >= 4 }">
@@ -577,6 +716,28 @@ onUnmounted(() => {
           <p class="eyebrow">SET FOUND</p><h2 id="reward-title">A lovely connection.</h2>
           <div class="trophy-cards"><article v-for="card in matchedCards" :key="card.id" class="trophy-card"><img :src="card.imageUrl" alt="Matched game card" /><dl><div v-for="category in game.categories" :key="category.id"><dt>{{ category.name }}</dt><dd>{{ card.features[category.id]?.label }}</dd></div></dl></article></div>
           <button class="primary-button continue-button" @click="dismissReward">{{ game?.status === 'active' ? 'Keep playing' : 'See results' }} <span aria-hidden="true">→</span></button>
+        </section>
+      </div>
+    </Transition>
+
+    <Transition name="fade">
+      <div v-if="galleryLightboxCard" class="lightbox-backdrop" role="presentation" @click.self="galleryLightboxCard = null">
+        <section class="reward-lightbox" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
+          <button class="lightbox-close" aria-label="Close gallery image" @click="galleryLightboxCard = null">×</button>
+          <p class="eyebrow">GALLERY CARD</p>
+          <h2 id="gallery-lightbox-title">{{ galleryLightboxCard.id }}</h2>
+          <div class="gallery-lightbox-path">{{ (galleryLightboxCard.directory || '(root)').replace(/\s+/g, '') }}/{{ (galleryLightboxCard.filename || galleryLightboxCard.image || '').replace(/\s+/g, '') }}</div>
+          <div class="gallery-lightbox-nav">
+            <button class="secondary-button" @click="previousGalleryCard">← Previous</button>
+            <button class="secondary-button" @click="nextGalleryCard">Next →</button>
+          </div>
+          <img class="gallery-lightbox-image" :src="galleryCardImageUrl(galleryLightboxCard)" :alt="`Large gallery image ${galleryLightboxCard.id}`" />
+          <dl class="gallery-lightbox-meta">
+            <div v-for="category in activeGallery?.categories ?? []" :key="category.id">
+              <dt>{{ category.name }}</dt>
+              <dd>{{ galleryLightboxCard.featureSummary?.[category.id] ?? 'Missing' }}</dd>
+            </div>
+          </dl>
         </section>
       </div>
     </Transition>

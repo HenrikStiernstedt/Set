@@ -342,6 +342,45 @@ export function createSetGalleryServer(options = {}) {
       return;
     }
 
+    const galleryEditorViewMatch = /^\/api\/galleries\/([^/]+)\/editor\/view$/.exec(pathname);
+    if (galleryEditorViewMatch && req.method === 'GET') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(galleryEditorViewMatch[1]);
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const view = await catalog.getEditorView(galleryId);
+          if (!view) return sendJson(res, 404, { error: 'Gallery view is unavailable.' });
+          sendJson(res, 200, view);
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Gallery view failed.' }));
+      });
+      return;
+    }
+
+    const galleryEditorImageMatch = /^\/api\/galleries\/([^/]+)\/editor\/images\/(.+)$/.exec(pathname);
+    if (galleryEditorImageMatch && req.method === 'GET') {
+      requireLoopback(req, res, () => {
+        void (async () => {
+          const galleryId = decodeURIComponent(galleryEditorImageMatch[1]);
+          const relativePath = decodeURIComponent(galleryEditorImageMatch[2]).replace(/^\/+/, '');
+          const entry = await catalog.getEntry(galleryId);
+          if (!entry) return sendJson(res, 404, { error: 'Gallery not found.' });
+          const target = path.resolve(path.dirname(entry.manifestPath), relativePath);
+          if (!isWithinRoot(path.dirname(entry.manifestPath), target)) return sendJson(res, 404, { error: 'Image not found.' });
+          try {
+            const stat = await fs.promises.stat(target);
+            if (!stat.isFile()) throw new Error('Not a file');
+            const buffer = await fs.promises.readFile(target);
+            res.writeHead(200, { 'content-type': contentType(target), 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
+            res.end(buffer);
+          } catch {
+            sendJson(res, 404, { error: 'Image not found.' });
+          }
+        })().catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Gallery image request failed.' }));
+      });
+      return;
+    }
+
     const filenameProfileMatch = /^\/api\/galleries\/([^/]+)\/editor\/filename-profile$/.exec(pathname);
     if (filenameProfileMatch && ['GET', 'PATCH'].includes(req.method)) {
       requireLoopback(req, res, () => {

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import {
   analyzeDeckReadiness,
   createDefaultSelection,
@@ -136,6 +137,10 @@ function countUsableReadiness(manifest, usableCards) {
   };
 }
 
+function hashFileBytes(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
 export function createGalleryCatalog(configuredRoots) {
   const rootsPromise = canonicalRoots(Array.isArray(configuredRoots) ? configuredRoots : []);
   let entriesPromise;
@@ -230,5 +235,78 @@ export function createGalleryCatalog(configuredRoots) {
     };
   }
 
-  return { getEntries, getEntry, getAvailable, getLocalSummary, rescan, getRoots: () => rootsPromise };
+  async function getEditorView(id) {
+    if (!isSafeGalleryId(id)) return null;
+    const entry = await getEntry(id);
+    if (!entry || !entry.manifest) return null;
+    const categories = Array.isArray(entry.manifest.categories) ? entry.manifest.categories : [];
+    const cards = [];
+    const duplicateImageHashes = new Map();
+    const duplicateNames = new Map();
+    for (const card of Array.isArray(entry.manifest.cards) ? entry.manifest.cards : []) {
+      if (typeof card?.image !== 'string') continue;
+      const imagePath = path.isAbsolute(card.image) ? card.image : path.resolve(path.dirname(entry.manifestPath), card.image);
+      try {
+        const buffer = await fs.readFile(imagePath);
+        const digest = hashFileBytes(buffer);
+        const matched = duplicateImageHashes.get(digest) ?? [];
+        matched.push(card.id);
+        duplicateImageHashes.set(digest, matched);
+      } catch {
+        // Missing files already handled elsewhere; keep the viewer tolerant.
+      }
+      const fileName = path.basename(card.image);
+      const sameName = duplicateNames.get(fileName) ?? [];
+      sameName.push(card.id);
+      duplicateNames.set(fileName, sameName);
+    }
+
+    for (const card of Array.isArray(entry.manifest.cards) ? entry.manifest.cards : []) {
+      const imagePath = path.isAbsolute(card.image) ? card.image : path.resolve(path.dirname(entry.manifestPath), card.image);
+      let digest = null;
+      try {
+        digest = hashFileBytes(await fs.readFile(imagePath));
+      } catch {
+        digest = null;
+      }
+      const duplicateImageIds = digest ? duplicateImageHashes.get(digest)?.filter((value, index, source) => source.indexOf(value) === index) ?? [] : [];
+      const fileName = path.basename(card.image ?? '');
+      const duplicateFileIds = duplicateNames.get(fileName)?.filter((value, index, source) => source.indexOf(value) === index) ?? [];
+      const missingCategoryIds = categories
+        .filter((category) => typeof category?.id === 'string')
+        .filter((category) => !Object.prototype.hasOwnProperty.call(card?.features ?? {}, category.id) || card.features[category.id] === null || card.features[category.id] === undefined)
+        .map((category) => category.id);
+      const relativePath = typeof card?.image === 'string' ? card.image.replaceAll('\\', '/') : '';
+      cards.push({
+        id: card?.id ?? null,
+        image: typeof card?.image === 'string' ? card.image : null,
+        imagePath,
+        relativePath,
+        directory: relativePath ? relativePath.split('/').slice(0, -1).join('/') : '',
+        filename: relativePath ? relativePath.split('/').at(-1) ?? relativePath : '',
+        featureSummary: card?.features ?? {},
+        missingCategoryIds,
+        duplicateImageIds,
+        duplicateFileIds,
+        duplicateImage: duplicateImageIds.length > 1,
+        duplicateFileName: duplicateFileIds.length > 1,
+      });
+    }
+
+    return {
+      id: entry.id,
+      name: entry.name,
+      categories: categories.map((category) => ({
+        id: category?.id ?? null,
+        name: category?.name ?? null,
+        values: Array.isArray(category?.values) ? category.values.map((value) => ({ id: value?.id ?? null, label: value?.label ?? null })) : [],
+      })),
+      cards,
+      missingCards: cards.filter((card) => card.missingCategoryIds.length > 0),
+      duplicateImageCards: cards.filter((card) => card.duplicateImage),
+      duplicateFilenameCards: cards.filter((card) => card.duplicateFileName),
+    };
+  }
+
+  return { getEntries, getEntry, getAvailable, getLocalSummary, getEditorView, rescan, getRoots: () => rootsPromise };
 }
