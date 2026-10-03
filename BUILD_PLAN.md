@@ -148,7 +148,8 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - [ ] 6. Multiplayer room/lobby and live spectator transport
 - [ ] 7. Multiplayer gameplay and same-code rounds
 - [ ] 8. Hardening, accessibility, and release readiness
-- [ ] 9. Hints, assistive overlays, and cheat controls
+- [ ] 9. Hints, cheats and assistive overlays
+- [ ] 10. Cheat controls
 
 ## Checkpoint log
 
