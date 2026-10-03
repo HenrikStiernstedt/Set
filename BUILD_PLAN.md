@@ -102,7 +102,7 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - [x] 0. Repository and product-contract preparation
 - [x] 1. Gallery manifest and readiness validation
 - [x] 2. Solo game vertical slice
-- [ ] 3. Local gallery authoring editor
+- [x] 3. Local gallery authoring editor
 - [x] 4. Filename-based tagging
 - [ ] 5. Permanent history, setup lists, and image voting
 - [ ] 6. Multiplayer room/lobby and live spectator transport

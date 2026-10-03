@@ -122,7 +122,6 @@ export async function replaceGalleryCardImage(entry, { cardId, name, data } = {}
   const validation = validateNoNewManifestErrors(entry.manifest, manifest);
   if (!validation.ok) return validation;
 
-  await resolveCardImage(entry, card);
   try {
     await fs.writeFile(destination, bytes, { flag: 'wx' });
     await writeManifestSafely(entry, manifest);

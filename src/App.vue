@@ -243,7 +243,7 @@ async function replaceGalleryCardImage(file) {
       body: JSON.stringify({ name: file.name, data: await fileAsBase64(file) }),
     });
     await refreshGalleryEditorView(galleryEditCard.value.id);
-    showMessage('Card image replaced.', 'info');
+    showMessage('Image replaced on the existing card. No card copy was created.', 'info');
   } catch (error) {
     galleryEditorError.value = error.message;
   } finally {
@@ -253,7 +253,8 @@ async function replaceGalleryCardImage(file) {
 }
 
 function onGalleryImageDrop(event) {
-  const file = [...(event.dataTransfer?.files ?? [])].find((item) => item.type.startsWith('image/'));
+  // Some desktop file drags omit the MIME type; the server validates extension and file signature.
+  const file = event.dataTransfer?.files?.[0];
   if (file) void replaceGalleryCardImage(file);
 }
 
