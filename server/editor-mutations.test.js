@@ -80,6 +80,25 @@ test('image replacement changes only image reference and rejects mismatched file
   }), { statusCode: 415 });
 });
 
+test('replacement repairs a deleted card image in place instead of leaving a broken card or making a copy', async (t) => {
+  const fixture = await makeFixture(t);
+  await fs.rm(path.join(fixture.directory, 'images', 'original.png'));
+  const entry = await fixture.catalog.getEntry('animals');
+  assert.equal(entry.usableCards.length, 0);
+
+  const result = await replaceGalleryCardImage(entry, {
+    cardId: 'card-one', name: 'replacement.png', data: pngBytes.toString('base64'),
+  });
+  assert.equal(result.cardId, 'card-one');
+  const saved = JSON.parse(await fs.readFile(fixture.manifestPath, 'utf8'));
+  assert.equal(saved.cards.length, 1);
+  assert.equal(saved.cards[0].id, 'card-one');
+  assert.deepEqual(saved.cards[0].features, { shape: 'round', color: 'red' });
+  assert.equal(saved.cards[0].image, result.image);
+  assert.ok(await fs.stat(path.join(fixture.directory, result.image)));
+  assert.equal(await fs.stat(path.join(fixture.directory, 'images', 'original.png')).catch(() => null), null);
+});
+
 test('manifest edits refuse to overwrite an external change', async (t) => {
   const fixture = await makeFixture(t);
   const staleEntry = await fixture.catalog.getEntry('animals');

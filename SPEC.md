@@ -238,6 +238,7 @@ An app-owned `config.json` stores settings independent of galleries:
   "maxImageImportBytes": 26214400,
   "networkMode": "local",
   "bindAddress": "127.0.0.1",
+  "port": 3001,
   "publicBaseUrl": null,
   "multiplayerRoomIdleMinutes": 60,
   "popularSetupLimit": 10,
@@ -249,7 +250,8 @@ An app-owned `config.json` stores settings independent of galleries:
 - `targetSets` accepts 1–27.
 - `maxImageImportBytes` defaults to 25 MiB and limits each desktop-dropped image import.
 - `networkMode` is `local` by default; multiplayer hosting must be explicitly enabled as `lan` or `hosted`.
-- `bindAddress` defaults to `127.0.0.1` and changes to a network interface only when multiplayer network mode is explicitly enabled.
+- `bindAddress` defaults to `127.0.0.1`; `0.0.0.0` binds all IPv4 interfaces. Binding to a network interface does not grant remote access to endpoints restricted to loopback clients.
+- `port` defaults to 3001 and accepts values from 1 to 65535. The `PORT` environment variable overrides the configured value.
 - `publicBaseUrl` is optional. When set, use it to construct share URLs; otherwise show detected LAN addresses and let the game master choose the address reachable by guests. Do not guess that a private LAN address is internet-accessible.
 - `multiplayerRoomIdleMinutes` defaults to 60 and controls expiry of idle rooms.
 - `popularSetupLimit` defaults to 10 and controls the number of popular setup templates shown before expanding the list.

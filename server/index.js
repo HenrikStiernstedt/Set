@@ -4,30 +4,22 @@ import path from 'node:path';
 import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { requireLoopback } from './security.js';
+import { readAppConfig, resolveServerConfig } from './config.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
-import { createSoloGame, dealThree, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
+import { createSoloGame, dealThree, findRevealCards, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
 import { applyGalleryFileDrops, applyGalleryFilenameTags, previewGalleryFileDrops, previewGalleryFilenameTags, saveFilenameProfile } from './filename-tagging.js';
 import { assignGalleryCardValues, replaceGalleryCardImage } from './editor-mutations.js';
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(currentDir, '..', 'dist');
-const host = '127.0.0.1';
-const port = Number.parseInt(process.env.PORT ?? '3001', 10);
+const { bindAddress, port } = resolveServerConfig();
 
 function configuredGalleryRoots() {
-  const appDir = path.resolve(currentDir, '..');
-  const configPath = [path.join(appDir, 'config.json'), path.join(appDir, 'config.example.json')]
-    .find((candidate) => fs.existsSync(candidate));
-  if (!configPath) return [];
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return Array.isArray(config.galleryRoots)
-      ? config.galleryRoots.filter((root) => typeof root === 'string' && root.trim()).map((root) => path.resolve(appDir, root))
-      : [];
-  } catch {
-    return [];
-  }
+  const config = readAppConfig();
+  return Array.isArray(config.galleryRoots)
+    ? config.galleryRoots.filter((root) => typeof root === 'string' && root.trim()).map((root) => path.resolve(currentDir, '..', root))
+    : [];
 }
 
 function sendJson(res, statusCode, data) {
@@ -142,7 +134,7 @@ export function createSetGalleryServer(options = {}) {
   return http.createServer((req, res) => {
     let pathname;
     try {
-      pathname = new URL(req.url ?? '/', `http://${host}:${port}`).pathname;
+      pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
     } catch {
       sendJson(res, 400, { error: 'Invalid request URL' });
       return;
@@ -228,6 +220,23 @@ export function createSetGalleryServer(options = {}) {
         const result = dealThree(game);
         if (!result.ok) return sendJson(res, result.status, { error: result.error });
         sendJson(res, 200, { dealt: result.dealt, game: result.game });
+      });
+      return;
+    }
+
+    const gameHintMatch = /^\/api\/games\/([0-9a-f-]+)\/hint$/.exec(pathname);
+    if (gameHintMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void readJsonBody(req).then((body) => {
+          const game = games.get(gameHintMatch[1]);
+          if (!game) return sendJson(res, 404, { error: 'Game not found.' });
+          const mode = body.mode;
+          const countByMode = { revealOne: 1, revealTwo: 2, revealThree: 3 };
+          if (!countByMode[mode]) return sendJson(res, 400, { error: 'Unsupported hint mode.' });
+          const revealCards = findRevealCards(game.board, game.categoryIds);
+          const revealIds = revealCards.slice(0, countByMode[mode]).map((card) => card.id);
+          sendJson(res, 200, { mode, revealIds });
+        }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
       });
       return;
     }
@@ -484,8 +493,9 @@ export function createSetGalleryServer(options = {}) {
 const server = createSetGalleryServer();
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  server.listen(port, host, () => {
-    console.log(`Set Gallery server listening at http://${host}:${port}`);
+  server.listen(port, bindAddress, () => {
+    const displayAddress = bindAddress.includes(':') ? `[${bindAddress}]` : bindAddress;
+    console.log(`Set Gallery server listening at http://${displayAddress}:${port}`);
   });
 
   for (const signal of ['SIGINT', 'SIGTERM']) {

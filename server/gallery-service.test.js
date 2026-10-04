@@ -191,6 +191,41 @@ test('solo game API validates setup, starts a game, serves an opaque image, and 
   assert.equal(oldGameResponse.status, 404);
 });
 
+test('solo game hint endpoint returns the server-authoritative reveal cards', async (t) => {
+  const fixture = await makeFixture(t);
+  const server = createSetGalleryServer({ galleryRoots: [fixture.root] });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const selection = {
+    categoryIds: fixture.manifest.categories.map((category) => category.id),
+    valuesByCategory: Object.fromEntries(fixture.manifest.categories.map((category) => [category.id, category.values.map((value) => value.id)])),
+  };
+
+  const createdResponse = await fetch(`${base}/api/games`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ galleryId: 'animals', selection, startingBoardSize: 12, targetSets: 1 }),
+  });
+  assert.equal(createdResponse.status, 201);
+  const created = await createdResponse.json();
+  const unselectedHintResponse = await fetch(`${base}/api/games/${created.game.id}/hint`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'revealOne' }),
+  });
+  assert.equal(unselectedHintResponse.status, 200);
+  const revealed = await unselectedHintResponse.json();
+  const selectedCardIds = created.game.board.map((card) => card.id).filter((id) => id !== revealed.revealIds[0]);
+  const selectedHintResponse = await fetch(`${base}/api/games/${created.game.id}/hint`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ mode: 'revealOne', cardIds: selectedCardIds }),
+  });
+  assert.equal(selectedHintResponse.status, 200);
+  const selectedHint = await selectedHintResponse.json();
+  assert.equal(revealed.mode, 'revealOne');
+  assert.ok(Array.isArray(revealed.revealIds));
+  assert.ok(revealed.revealIds.length >= 1);
+  assert.ok(revealed.revealIds.every((id) => created.game.board.some((card) => card.id === id)));
+  assert.deepEqual(selectedHint.revealIds, revealed.revealIds);
+});
+
 test('catalog reports duplicate gallery IDs as invalid instead of choosing an arbitrary folder', async (t) => {
   const fixture = await makeFixture(t);
   const secondDirectory = path.join(fixture.root, 'duplicate');

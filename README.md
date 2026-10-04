@@ -15,20 +15,22 @@ npm install
 
 ## Run during development
 
-Open two terminals in the project directory:
+On Windows, run `start-dev.bat` from the project directory. It opens the backend and Vite in separate command windows.
+
+On other platforms, open two terminals in the project directory:
 
 1. Start the backend: `npm run server:watch`
 2. Start Vite: `npm run dev`
 
-Open the local Vite URL printed in the second terminal (normally `http://127.0.0.1:5173`). Vite proxies `/api` to the Node service on `127.0.0.1:3001`.
+Open the Vite URL printed in the second terminal (normally `http://127.0.0.1:5173`). Vite proxies `/api` to the Node service using the configured `bindAddress` and `port`.
 
-The backend is deliberately loopback-bound in this milestone. LAN hosting will be introduced in a later phase; gallery editing/admin operations are intended to remain local-only.
+The server defaults to `127.0.0.1:3001`. To bind on all IPv4 interfaces, set `"bindAddress": "0.0.0.0"` and choose a `"port"` in `config.json`; `PORT` overrides the configured port. The Vite development server uses the same bind address. Binding to a network interface does not enable remote gameplay or editing: endpoints guarded as loopback-only still reject requests from other devices.
 
 ## Build and verify
 
 - `npm test` — run Node's built-in test runner.
 - `npm run build` — compile the Vue frontend into `dist/`.
-- `npm start` — serve the production build and API at `http://127.0.0.1:3001` (run `npm run build` first).
+- `npm start` — serve the production build and API at the configured address and port (run `npm run build` first).
 
 ## Starter gallery
 

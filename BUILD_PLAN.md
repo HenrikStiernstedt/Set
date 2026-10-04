@@ -97,17 +97,59 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 
 **Done when:** clean install, automated tests, production build, manual solo/LAN checks, and documentation checklist all pass.
 
+### 9. Add all hints and cheats
+
+- Define separate cheat and hint groups, each with clear names and a consistent in-game button set.
+- Add cheat modes with catchy names:
+  - "Reveal one" — highlight one card that can participate in a valid Set with the current selection or board state.
+  - "Reveal two" — highlight a second card that completes a valid pair with the first revealed card.
+  - "Reveal three" — highlight the third card to complete a Set; keep this as a debug/test-only mode by default and ensure it is not enabled in standard production play.
+  - "Highlight category" — highlight every card matching a chosen category value.
+  - "Fade invalid" — when two cards are selected, fade or disable cards that cannot participate in a valid Set; this is a strong assist and should be treated as a cheat mode.
+- Add hint modes with friendlier names and more standard UI treatment:
+  - "Highlight new cards" — emphasize newly dealt cards or recently revealed cards as likely Set candidates.
+  - "Show category overlay" — render a category/value overlay on cards as a standard visual aid, not a cheat.
+- Define the display rules for highlights:
+  - "Highlight new cards" uses a large blue glow behind the card to make it easy to see while staying compatible with all other active hints.
+  - Reveal hints use a smaller, stronger orange glow behind the card to call attention to the actual Set-solution cards.
+  - "Highlight category" does not need to match the reveal visual style and may be used independently; it does not need to be compatible with reveal modes, because those will not be used at the same time.
+  - "Highlight new cards" must be compatible with all other active overlays and glow styles and should remain visible alongside them.
+  - Fade invalid cards are simple disabled/low-opacity treatment and are trivial to combine with other board highlights.
+  - "Show category overlay" overlays the name of the value in each corner for the active categories; this should work even when cards are otherwise highlighted.
+- Keep hint and cheat semantics distinct: reveal-based actions are cheat-like and should be reset after a successful match; persistent display hints such as "Highlight new cards" and "Show category overlay" should remain active until the player turns them off.
+- Add all hint/cheat buttons directly on the board while a game is active. Buttons must be visible, easy to understand, and reflect whether the mode is persistent or one-shot.
+- Preserve the gameplay boundary: hints must remain view-layer-only unless the mode is explicitly marked as cheat and permitted by config; no hint or cheat should mutate board rules, deck state, or selection validation.
+
+**Done when:** the game exposes a visible board-level action set for each hint/cheat, one-shot reveal modes reset after a valid match, persistent display hints stay active when enabled, category overlays render value names in the corners, and cheat features remain off unless explicitly allowed.
+
+### 10. Add configurability
+
+- Add server-level default configuration for which hints and cheats are available globally.
+- Add per-set override configuration so each gallery/set can enable, disable, or tighten the allowed modes beyond the server default.
+- Require explicit pre-game activation for any cheat or strong hint feature before the board begins; the activation decision must be persisted as part of the game setup/history.
+- Record every hint and cheat use in game history, including mode name, category, timestamp, whether it was a hint or a cheat, and whether it was persistent or one-shot.
+- Reserve room for a later scoring impact: cheat usage may reduce points, trigger penalties, or otherwise be treated differently from standard assistance.
+- Keep the configuration model simple and explicit: default allowed modes, per-set override rules, and pre-game activation state all need to be readable by diagnostics and tests.
+- Keep the strong cheat modes disabled by default and do not allow them in standard game settings unless config explicitly permits them.
+- Add a testing matrix covering default play, standard hints enabled, cheat modes enabled by config, and deny-list behavior when the set/server policy blocks a cheat mode.
+
+**Done when:** config defaults and per-set overrides are enforced end-to-end, pre-game activation is required for cheat modes, and game history records the selection and use of each hint/cheat mode.
+
+## Checklist
+
 ## Checklist
 
 - [x] 0. Repository and product-contract preparation
 - [x] 1. Gallery manifest and readiness validation
 - [x] 2. Solo game vertical slice
-- [ ] 3. Local gallery authoring editor
+- [x] 3. Local gallery authoring editor
 - [x] 4. Filename-based tagging
 - [ ] 5. Permanent history, setup lists, and image voting
 - [ ] 6. Multiplayer room/lobby and live spectator transport
 - [ ] 7. Multiplayer gameplay and same-code rounds
 - [ ] 8. Hardening, accessibility, and release readiness
+- [x] 9. Hints, cheats and assistive overlays
+- [ ] 10. Cheat controls
 
 ## Checkpoint log
 
@@ -132,3 +174,5 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Gallery editor mutation slice complete: added explicit per-card editing from the viewer lightbox, manual category/value assignment with required overwrite/ignore conflict decisions, and replacement-image drop/file selection. Server validates card/category/value IDs, canonical image/root containment, image type/signature and upload size; replacement changes only the image reference, preserving all other card properties. Manifest writes now share serialized atomic backup persistence and reject invalid/external stale edits.
 - Validation: `npm test` passed (36 tests, including assignment conflict/validation, replacement metadata preservation and bad-content rejection, stale external-edit protection, and local editor API routes); `npm run build` passed; editor files report no errors.
 - Remaining milestone 3 work: category/value create/rename/delete, file browser and explicit rescan workflows, and completing the staged desktop-import preview/apply lifecycle and its ambiguity/cancel cleanup requirements. Milestone 3 remains unchecked.
+- Milestone 9 complete (2026-10-04): added board-level Reveal one/two/three using the server-authoritative Set finder, category highlighting, Fade invalid, Highlight new cards, and category overlays. Reveal ignores current selection and returns the same board-selected Set regardless of other card states; reveal modes clear after a successful match, while persistent display modes remain active. Card cues have distinct selected-outline, reveal-shake, and new-card-shadow treatments; hover no longer overrides them, and newly introduced cards appear without an entry delay.
+- Validation: `npm test` passed (40 tests, including reveal API and selection-independence regressions); `npm run build` passed. Cheat availability policy, per-gallery overrides, pre-game activation, and use history remain milestone 10 scope.
