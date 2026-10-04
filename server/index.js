@@ -4,6 +4,7 @@ import path from 'node:path';
 import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { requireLoopback } from './security.js';
+import { readAppConfig, resolveServerConfig } from './config.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
 import { createSoloGame, dealThree, findRevealCards, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
@@ -12,22 +13,13 @@ import { assignGalleryCardValues, replaceGalleryCardImage } from './editor-mutat
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(currentDir, '..', 'dist');
-const host = '127.0.0.1';
-const port = Number.parseInt(process.env.PORT ?? '3001', 10);
+const { bindAddress, port } = resolveServerConfig();
 
 function configuredGalleryRoots() {
-  const appDir = path.resolve(currentDir, '..');
-  const configPath = [path.join(appDir, 'config.json'), path.join(appDir, 'config.example.json')]
-    .find((candidate) => fs.existsSync(candidate));
-  if (!configPath) return [];
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return Array.isArray(config.galleryRoots)
-      ? config.galleryRoots.filter((root) => typeof root === 'string' && root.trim()).map((root) => path.resolve(appDir, root))
-      : [];
-  } catch {
-    return [];
-  }
+  const config = readAppConfig();
+  return Array.isArray(config.galleryRoots)
+    ? config.galleryRoots.filter((root) => typeof root === 'string' && root.trim()).map((root) => path.resolve(currentDir, '..', root))
+    : [];
 }
 
 function sendJson(res, statusCode, data) {
@@ -142,7 +134,7 @@ export function createSetGalleryServer(options = {}) {
   return http.createServer((req, res) => {
     let pathname;
     try {
-      pathname = new URL(req.url ?? '/', `http://${host}:${port}`).pathname;
+      pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
     } catch {
       sendJson(res, 400, { error: 'Invalid request URL' });
       return;
@@ -501,8 +493,9 @@ export function createSetGalleryServer(options = {}) {
 const server = createSetGalleryServer();
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  server.listen(port, host, () => {
-    console.log(`Set Gallery server listening at http://${host}:${port}`);
+  server.listen(port, bindAddress, () => {
+    const displayAddress = bindAddress.includes(':') ? `[${bindAddress}]` : bindAddress;
+    console.log(`Set Gallery server listening at http://${displayAddress}:${port}`);
   });
 
   for (const signal of ['SIGINT', 'SIGTERM']) {
