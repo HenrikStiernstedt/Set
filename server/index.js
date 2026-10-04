@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { requireLoopback } from './security.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
-import { createSoloGame, dealThree, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
+import { createSoloGame, dealThree, findRevealCards, resolveGameAsset, serializeGame, serializeReadiness, submitSet } from './game-engine.js';
 import { applyGalleryFileDrops, applyGalleryFilenameTags, previewGalleryFileDrops, previewGalleryFilenameTags, saveFilenameProfile } from './filename-tagging.js';
 import { assignGalleryCardValues, replaceGalleryCardImage } from './editor-mutations.js';
 
@@ -228,6 +228,23 @@ export function createSetGalleryServer(options = {}) {
         const result = dealThree(game);
         if (!result.ok) return sendJson(res, result.status, { error: result.error });
         sendJson(res, 200, { dealt: result.dealt, game: result.game });
+      });
+      return;
+    }
+
+    const gameHintMatch = /^\/api\/games\/([0-9a-f-]+)\/hint$/.exec(pathname);
+    if (gameHintMatch && req.method === 'POST') {
+      requireLoopback(req, res, () => {
+        void readJsonBody(req).then((body) => {
+          const game = games.get(gameHintMatch[1]);
+          if (!game) return sendJson(res, 404, { error: 'Game not found.' });
+          const mode = body.mode;
+          const countByMode = { revealOne: 1, revealTwo: 2, revealThree: 3 };
+          if (!countByMode[mode]) return sendJson(res, 400, { error: 'Unsupported hint mode.' });
+          const revealCards = findRevealCards(game.board, game.categoryIds);
+          const revealIds = revealCards.slice(0, countByMode[mode]).map((card) => card.id);
+          sendJson(res, 200, { mode, revealIds });
+        }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
       });
       return;
     }

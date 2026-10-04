@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSoloGame, dealThree, findSet, isSet, resolveGameAsset, serializeGame, submitSet } from './game-engine.js';
+import { createSoloGame, dealThree, findRevealCards, findSet, findSetCandidates, isSet, resolveGameAsset, serializeGame, submitSet } from './game-engine.js';
 
 function buildManifest(extraCategory = false) {
   const categories = [
@@ -213,4 +213,22 @@ test('public game snapshots hide canonical paths and expose opaque image URLs on
   const token = view.board[0].imageUrl.split('/').at(-1);
   assert.equal(resolveGameAsset(game, token).id, view.board[0].id);
   assert.equal(resolveGameAsset(game, 'images/0.svg'), null);
+});
+
+test('findSetCandidates finds valid triples and reveal helpers choose the cards from them', () => {
+  const setCards = [
+    { id: 'a', features: { color: 'red', count: 'one', shape: 'circle', shade: 'solid' } },
+    { id: 'b', features: { color: 'red', count: 'two', shape: 'circle', shade: 'striped' } },
+    { id: 'c', features: { color: 'red', count: 'three', shape: 'circle', shade: 'open' } },
+  ];
+  const candidates = findSetCandidates(setCards, ['color', 'count', 'shape', 'shade']);
+  assert.equal(candidates.length, 1);
+  assert.deepEqual(candidates[0].map((card) => card.id).sort(), ['a', 'b', 'c']);
+
+  const revealOne = findRevealCards(setCards, ['color', 'count', 'shape', 'shade'], ['a']).slice(0, 1);
+  assert.equal(revealOne.length, 1);
+  assert.deepEqual(revealOne.map((card) => card.id).sort(), ['a']);
+
+  const revealThree = findRevealCards(setCards, ['color', 'count', 'shape', 'shade'], ['a', 'b']);
+  assert.deepEqual(revealThree.map((card) => card.id).sort(), ['a', 'b', 'c']);
 });

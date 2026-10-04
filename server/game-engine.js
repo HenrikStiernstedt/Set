@@ -26,6 +26,24 @@ export function findSet(cards, categoryIds) {
   return null;
 }
 
+export function findSetCandidates(cards, categoryIds) {
+  const triples = [];
+  for (let first = 0; first < cards.length - 2; first += 1) {
+    for (let second = first + 1; second < cards.length - 1; second += 1) {
+      for (let third = second + 1; third < cards.length; third += 1) {
+        const triple = [cards[first], cards[second], cards[third]];
+        if (isSet(triple, categoryIds)) triples.push(triple);
+      }
+    }
+  }
+  return triples;
+}
+
+export function findRevealCards(cards, categoryIds) {
+  const triples = findSetCandidates(cards, categoryIds);
+  return triples[0] ?? [];
+}
+
 function shuffle(items, random) {
   const shuffled = [...items];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {

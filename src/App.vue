@@ -25,6 +25,18 @@ const filenameGlobalResolutions = ref({});
 const game = ref(null);
 const selectedCardIds = ref([]);
 const matchedCards = ref([]);
+const revealHintIds = ref([]);
+const hintModes = ref({
+  revealOne: false,
+  revealTwo: false,
+  revealThree: false,
+  highlightCategory: false,
+  fadeInvalid: false,
+  highlightNewCards: false,
+  showCategoryOverlay: false,
+});
+const highlightCategorySelection = ref({ categoryId: '', valueId: '' });
+const newlyDealtCardIds = ref([]);
 const lightboxOpen = ref(false);
 const lightboxCloseButton = ref(null);
 const galleryView = ref(null);
@@ -462,9 +474,166 @@ function enterGame(nextGame) {
   game.value = { ...nextGame, _clientStartedAt: Date.now() - (nextGame.elapsedSeconds ?? 0) * 1000 };
   selectedCardIds.value = [];
   matchedCards.value = [];
+  revealHintIds.value = [];
+  newlyDealtCardIds.value = [];
+  hintModes.value = {
+    revealOne: false,
+    revealTwo: false,
+    revealThree: false,
+    highlightCategory: false,
+    fadeInvalid: false,
+    highlightNewCards: false,
+    showCategoryOverlay: false,
+  };
+  const firstCategory = game.value.categories?.[0];
+  highlightCategorySelection.value = {
+    categoryId: firstCategory?.id ?? '',
+    valueId: firstCategory?.values?.[0]?.id ?? '',
+  };
   lightboxOpen.value = false;
   message.value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function featureValueId(card, categoryId) {
+  const value = card?.features?.[categoryId];
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'id' in value) return value.id;
+  return null;
+}
+
+function isSetLocal(cards, categoryIds) {
+  if (!Array.isArray(cards) || cards.length !== 3 || !Array.isArray(categoryIds) || categoryIds.length !== 4) return false;
+  return categoryIds.every((categoryId) => {
+    const values = cards.map((card) => featureValueId(card, categoryId));
+    return values.every((value) => typeof value === 'string')
+      && (values[0] === values[1] && values[1] === values[2]
+        || values[0] !== values[1] && values[0] !== values[2] && values[1] !== values[2]);
+  });
+}
+
+function clearRevealHints() {
+  hintModes.value.revealOne = false;
+  hintModes.value.revealTwo = false;
+  hintModes.value.revealThree = false;
+  revealHintIds.value = [];
+}
+
+async function syncRevealHint() {
+  if (!game.value) {
+    revealHintIds.value = [];
+    return;
+  }
+
+  const activeMode = Object.entries(hintModes.value)
+    .find(([mode, enabled]) => enabled && ['revealOne', 'revealTwo', 'revealThree'].includes(mode))?.[0];
+  if (!activeMode) {
+    revealHintIds.value = [];
+    return;
+  }
+
+  try {
+    const response = await requestJson(`/api/games/${game.value.id}/hint`, {
+      method: 'POST',
+      body: JSON.stringify({ mode: activeMode }),
+    });
+    revealHintIds.value = Array.isArray(response.revealIds) ? response.revealIds : [];
+  } catch (error) {
+    revealHintIds.value = [];
+    clearRevealHints();
+    showMessage(error.message || 'Reveal hint unavailable.', 'error');
+  }
+}
+
+async function setHintMode(mode) {
+  if (!game.value) return;
+  if (['revealOne', 'revealTwo', 'revealThree'].includes(mode)) {
+    const nextState = { revealOne: false, revealTwo: false, revealThree: false };
+    const enabled = !hintModes.value[mode];
+    nextState[mode] = enabled;
+    hintModes.value = { ...hintModes.value, ...nextState };
+    if (enabled) {
+      await syncRevealHint();
+    } else {
+      revealHintIds.value = [];
+    }
+    return;
+  }
+  hintModes.value[mode] = !hintModes.value[mode];
+  if (mode === 'highlightCategory' && hintModes.value.highlightCategory) {
+    syncHighlightCategorySelection();
+  }
+}
+
+function syncHighlightCategorySelection() {
+  if (!game.value) return;
+  const category = game.value.categories.find((entry) => entry.id === highlightCategorySelection.value.categoryId)
+    ?? game.value.categories[0];
+  if (!category) return;
+  highlightCategorySelection.value.categoryId = category.id;
+  if (!category.values.some((value) => value.id === highlightCategorySelection.value.valueId)) {
+    highlightCategorySelection.value.valueId = category.values[0]?.id ?? '';
+  }
+}
+
+const activeRevealIds = computed(() => {
+  if (!game.value) return [];
+  const revealMode = Object.entries(hintModes.value)
+    .find(([mode, enabled]) => enabled && ['revealOne', 'revealTwo', 'revealThree'].includes(mode))?.[0];
+  if (!revealMode) return [];
+  if (!revealHintIds.value.length) return [];
+  return revealHintIds.value;
+});
+
+const activeCategoryIds = computed(() => game.value?.categories?.map((category) => category.id) ?? []);
+
+const categoryHighlight = computed(() => {
+  if (!game.value || !hintModes.value.highlightCategory) return null;
+  const categoryId = highlightCategorySelection.value.categoryId || activeCategoryIds.value[0];
+  const category = game.value.categories.find((entry) => entry.id === categoryId);
+  if (!category) return null;
+  const valueId = highlightCategorySelection.value.valueId || category.values[0]?.id || null;
+  if (!valueId) return null;
+  return { categoryId, valueId };
+});
+
+const invalidCardIds = computed(() => {
+  if (!game.value || selectedCardIds.value.length !== 2 || !hintModes.value.fadeInvalid) return [];
+  const [firstId, secondId] = selectedCardIds.value;
+  const first = game.value.board.find((card) => card.id === firstId);
+  const second = game.value.board.find((card) => card.id === secondId);
+  if (!first || !second) return [];
+  const invalid = [];
+  for (const card of game.value.board) {
+    if (card.id === firstId || card.id === secondId) continue;
+    if (!isSetLocal([first, second, card], activeCategoryIds.value)) invalid.push(card.id);
+  }
+  return invalid;
+});
+
+const newCardHighlightIds = computed(() => {
+  if (!hintModes.value.highlightNewCards) return [];
+  return newlyDealtCardIds.value;
+});
+
+function cardClasses(card) {
+  const classes = [];
+  if (selectedCardIds.value.includes(card.id)) classes.push('selected');
+  if (activeRevealIds.value.includes(card.id)) classes.push('reveal-highlight');
+  if (newCardHighlightIds.value.includes(card.id)) classes.push('new-card-highlight');
+  if (categoryHighlight.value && card.features[categoryHighlight.value.categoryId]?.id === categoryHighlight.value.valueId) classes.push('category-highlight');
+  if (invalidCardIds.value.includes(card.id)) classes.push('invalid-card');
+  if (hintModes.value.showCategoryOverlay) classes.push('category-overlay-enabled');
+  return classes;
+}
+
+function cardOverlayEntries(card) {
+  if (!game.value) return [];
+  return game.value.categories.map((category, index) => {
+    const value = card.features?.[category.id];
+    const label = typeof value === 'string' ? value : value?.label ?? '';
+    return { label: label ? `${category.name}: ${label}` : '', position: index };
+  }).filter((entry) => entry.label);
 }
 
 async function toggleCard(card) {
@@ -483,6 +652,7 @@ async function submitSelection() {
   if (!game.value || selectedCardIds.value.length !== 3) return;
   busy.value = true;
   try {
+    const previousIds = new Set(game.value.board.map((card) => card.id));
     const result = await requestJson(`/api/games/${game.value.id}/match`, {
       method: 'POST',
       body: JSON.stringify({ cardIds: [...selectedCardIds.value] }),
@@ -491,6 +661,8 @@ async function submitSelection() {
     selectedCardIds.value = [];
     if (result.valid) {
       matchedCards.value = result.matched;
+      clearRevealHints();
+      newlyDealtCardIds.value = result.game.board.filter((card) => !previousIds.has(card.id)).map((card) => card.id);
       lastFocusedElement = document.activeElement;
       lightboxOpen.value = true;
       await nextTick();
@@ -511,8 +683,10 @@ async function dealThree() {
   if (!game.value || busy.value) return;
   busy.value = true;
   try {
+    const previousIds = new Set(game.value.board.map((card) => card.id));
     const result = await requestJson(`/api/games/${game.value.id}/deal`, { method: 'POST', body: '{}' });
     game.value = { ...result.game, _clientStartedAt: game.value._clientStartedAt };
+    newlyDealtCardIds.value = result.game.board.filter((card) => !previousIds.has(card.id));
     if (result.dealt === 0) showMessage('No cards remain to deal.', 'info');
   } catch (error) {
     showMessage(error.message, 'error');
@@ -808,9 +982,29 @@ onUnmounted(() => {
       <div v-if="message" class="toast" :class="messageType" role="status">{{ message }}</div>
       <div v-if="game.status !== 'active'" class="end-banner" role="status"><div><p class="eyebrow">GAME COMPLETE</p><h2>{{ game.outcome === 'won' ? 'You found enough Sets!' : 'No Sets remain.' }}</h2><p>{{ game.outcome === 'won' ? `You reached ${game.targetSets} Sets.` : 'The deck is exhausted and the board has no Set.' }} · {{ formattedTime }} · {{ game.mistakes }} mistakes</p></div><button class="primary-button" @click="restartGame">Play again <span aria-hidden="true">↻</span></button></div>
       <section class="board-section" aria-label="Set game cards">
+        <div class="hint-button-row" aria-label="Hint and cheat controls">
+          <button class="hint-button reveal" :class="{ active: hintModes.revealOne }" @click="setHintMode('revealOne')">Reveal one</button>
+          <button class="hint-button reveal" :class="{ active: hintModes.revealTwo }" @click="setHintMode('revealTwo')">Reveal two</button>
+          <button class="hint-button reveal" :class="{ active: hintModes.revealThree }" @click="setHintMode('revealThree')">Reveal three</button>
+          <div v-if="game.categories?.length" class="hint-category-picker">
+            <button class="hint-button category" :class="{ active: hintModes.highlightCategory }" @click="setHintMode('highlightCategory')">Highlight category</button>
+            <select v-model="highlightCategorySelection.categoryId" v-if="hintModes.highlightCategory" class="hint-category-select" aria-label="Choose category to highlight" @change="syncHighlightCategorySelection()">
+              <option v-for="category in game.categories" :key="category.id" :value="category.id">{{ category.name }}</option>
+            </select>
+            <select v-model="highlightCategorySelection.valueId" v-if="hintModes.highlightCategory && highlightCategorySelection.categoryId" class="hint-category-select" aria-label="Choose value to highlight" @change="syncHighlightCategorySelection()">
+              <option v-for="value in (game.categories.find((category) => category.id === highlightCategorySelection.categoryId)?.values ?? [])" :key="value.id" :value="value.id">{{ value.label }}</option>
+            </select>
+          </div>
+          <button class="hint-button invalid" :class="{ active: hintModes.fadeInvalid }" @click="setHintMode('fadeInvalid')">Fade invalid</button>
+          <button class="hint-button accent" :class="{ active: hintModes.highlightNewCards }" @click="setHintMode('highlightNewCards')">Highlight new cards</button>
+          <button class="hint-button accent" :class="{ active: hintModes.showCategoryOverlay }" @click="setHintMode('showCategoryOverlay')">Show category overlay</button>
+        </div>
         <TransitionGroup name="card" tag="div" class="board-grid" :class="{ 'expanded-board': game.board.length > 15 }">
-          <button v-for="card in game.board" :key="card.id" class="playing-card" :class="{ selected: selectedCardIds.includes(card.id) }" :aria-pressed="selectedCardIds.includes(card.id)" :aria-label="cardLabel(card)" :disabled="game.status !== 'active' || busy || lightboxOpen" @click="toggleCard(card)">
+          <button v-for="card in game.board" :key="card.id" class="playing-card" :class="cardClasses(card)" :aria-pressed="selectedCardIds.includes(card.id)" :aria-label="cardLabel(card)" :disabled="game.status !== 'active' || busy || lightboxOpen" @click="toggleCard(card)">
             <img class="card-art-image" :src="card.imageUrl" alt="" loading="lazy" />
+            <span v-if="hintModes.showCategoryOverlay" class="card-overlay" aria-hidden="true">
+              <span v-for="(entry, index) in cardOverlayEntries(card)" :key="`${card.id}-${entry.position}`" class="card-overlay-value" :class="`position-${index + 1}`">{{ entry.label }}</span>
+            </span>
           </button>
         </TransitionGroup>
       </section>
