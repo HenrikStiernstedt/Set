@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 
 const apiStatus = ref('checking');
 const apiMessage = ref('Connecting to the local game service…');
+const isLocalClient = ref(true);
 const galleries = ref([]);
 const selectedGalleryId = ref('');
 const selectedCategoryIds = ref([]);
@@ -85,10 +86,18 @@ async function requestJson(url, options = {}) {
 
 async function loadGalleries() {
   try {
-    const data = await requestJson('/api/galleries');
+    let data;
+    try {
+      data = await requestJson('/api/galleries');
+      isLocalClient.value = true;
+    } catch (error) {
+      if (error.status !== 403) throw error;
+      data = await requestJson('/api/galleries/available');
+      isLocalClient.value = false;
+    }
     galleries.value = data.galleries ?? [];
     apiStatus.value = 'online';
-    apiMessage.value = `Local service online · ${galleries.value.length} ${galleries.value.length === 1 ? 'gallery' : 'galleries'} found`;
+    apiMessage.value = `${isLocalClient.value ? 'Local' : 'LAN game'} service online · ${galleries.value.length} ${galleries.value.length === 1 ? 'gallery' : 'galleries'} found`;
     if (!selectedGalleryId.value && galleries.value.length) chooseGallery(galleries.value[0].id);
   } catch (error) {
     apiStatus.value = 'offline';
@@ -296,6 +305,7 @@ function previousGalleryCard() {
 }
 
 async function loadFilenameProfile(galleryId) {
+  if (!isLocalClient.value) return;
   try {
     const result = await requestJson(`/api/galleries/${encodeURIComponent(galleryId)}/editor/filename-profile`);
     filenameProfile.value = { enabled: result.profile?.enabled === true, delimiter: result.profile?.delimiter ?? '_', slots: result.profile?.slots ?? [] };
@@ -838,7 +848,7 @@ onUnmounted(() => {
           </div>
         </section>
 
-        <section v-if="activeGallery" class="gallery-view-panel" aria-labelledby="gallery-view-heading">
+        <section v-if="activeGallery && isLocalClient" class="gallery-view-panel" aria-labelledby="gallery-view-heading">
           <div class="section-title-row"><div><p class="eyebrow">02 / GALLERY VIEW</p><h2 id="gallery-view-heading">Inspect gallery records</h2></div><button class="secondary-button" @click="openGalleryViewer">Open gallery view</button></div>
           <div v-if="galleryViewOpen && galleryView" class="gallery-view-body">
             <div class="gallery-filter-row">
@@ -905,7 +915,7 @@ onUnmounted(() => {
           <p v-if="setupError" class="error-text" role="alert">{{ setupError }}</p>
         </section>
 
-        <section v-if="activeGallery" class="filename-tagging-panel">
+        <section v-if="activeGallery && isLocalClient" class="filename-tagging-panel">
           <div class="filename-panel-heading">
             <div><p class="eyebrow">OPTIONAL · AUTOMATED TAGGING</p><h2>Tag images from filenames</h2><p class="helper-copy">Map filename token positions to categories, preview all images in this gallery, then apply the tags. Existing image files are not copied or renamed.</p></div>
             <button class="secondary-button" @click="showFilenameTagging = !showFilenameTagging">{{ showFilenameTagging ? 'Hide' : 'Configure' }}</button>
@@ -1024,7 +1034,7 @@ onUnmounted(() => {
     </Transition>
 
     <Transition name="fade">
-      <div v-if="galleryLightboxCard" class="lightbox-backdrop" role="presentation" @click.self="galleryLightboxCard = null">
+      <div v-if="isLocalClient && galleryLightboxCard" class="lightbox-backdrop" role="presentation" @click.self="galleryLightboxCard = null">
         <section class="reward-lightbox gallery-image-lightbox" :class="{ maximized: galleryImageMaximized }" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
           <button class="lightbox-close" aria-label="Close gallery image" @click="galleryLightboxCard = null">×</button>
           <p class="eyebrow">GALLERY CARD</p>
@@ -1048,7 +1058,7 @@ onUnmounted(() => {
     </Transition>
 
     <Transition name="fade">
-      <div v-if="galleryEditCard" class="lightbox-backdrop editor-backdrop" role="presentation" @click.self="galleryEditCard = null">
+      <div v-if="isLocalClient && galleryEditCard" class="lightbox-backdrop editor-backdrop" role="presentation" @click.self="galleryEditCard = null">
         <section class="reward-lightbox gallery-card-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="card-editor-title">
           <button class="lightbox-close" aria-label="Close card editor" @click="galleryEditCard = null">×</button>
           <p class="eyebrow">EDIT GALLERY CARD</p>

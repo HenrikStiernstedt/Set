@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { requireLoopback } from './security.js';
+import { requireGameAccess, requireLoopback } from './security.js';
 import { readAppConfig, resolveServerConfig } from './config.js';
 import { createGalleryCatalog } from './gallery-service.js';
 import { analyzeDeckReadiness, isSafeGalleryId, rankValueAlternatives } from './gallery-validation.js';
@@ -13,7 +13,7 @@ import { assignGalleryCardValues, replaceGalleryCardImage } from './editor-mutat
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(currentDir, '..', 'dist');
-const { bindAddress, port } = resolveServerConfig();
+const { bindAddress, networkMode, port } = resolveServerConfig();
 
 function configuredGalleryRoots() {
   const config = readAppConfig();
@@ -130,6 +130,7 @@ function serveBuiltApp(req, res, pathname, distDirectory = distDir) {
 export function createSetGalleryServer(options = {}) {
   const catalog = createGalleryCatalog(options.galleryRoots ?? configuredGalleryRoots());
   const staticDirectory = options.staticDirectory ?? distDir;
+  const gameNetworkMode = options.networkMode ?? networkMode;
   const games = new Map();
   return http.createServer((req, res) => {
     let pathname;
@@ -159,7 +160,7 @@ export function createSetGalleryServer(options = {}) {
 
     const galleryReadinessMatch = /^\/api\/galleries\/([^/]+)\/readiness$/.exec(pathname);
     if (galleryReadinessMatch && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         void readJsonBody(req).then(async (body) => {
           const galleryId = decodeURIComponent(galleryReadinessMatch[1]);
           const entry = await catalog.getEntry(galleryId);
@@ -170,12 +171,12 @@ export function createSetGalleryServer(options = {}) {
             : rankValueAlternatives(entry.manifest, body.selection?.categoryIds, body.selection?.valuesByCategory, entry.usableCards);
           sendJson(res, 200, { readiness: serializeReadiness(readiness, entry.manifest), recommendations });
         }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
-      });
+      }, gameNetworkMode);
       return;
     }
 
     if (pathname === '/api/games' && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         void readJsonBody(req).then(async (body) => {
           if (!isSafeGalleryId(body.galleryId)) return sendJson(res, 400, { error: 'Invalid gallery ID.' });
           const entry = await catalog.getEntry(body.galleryId);
@@ -194,13 +195,13 @@ export function createSetGalleryServer(options = {}) {
           games.set(result.game.id, result.game);
           sendJson(res, 201, { game: serializeGame(result.game) });
         }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
-      });
+      }, gameNetworkMode);
       return;
     }
 
     const gameMatch = /^\/api\/games\/([0-9a-f-]+)\/match$/.exec(pathname);
     if (gameMatch && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         void readJsonBody(req).then((body) => {
           const game = games.get(gameMatch[1]);
           if (!game) return sendJson(res, 404, { error: 'Game not found.' });
@@ -208,25 +209,25 @@ export function createSetGalleryServer(options = {}) {
           if (!result.ok) return sendJson(res, result.status, { error: result.error });
           sendJson(res, 200, { valid: result.valid, matched: result.matched ?? [], game: result.game });
         }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
-      });
+      }, gameNetworkMode);
       return;
     }
 
     const gameDealMatch = /^\/api\/games\/([0-9a-f-]+)\/deal$/.exec(pathname);
     if (gameDealMatch && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         const game = games.get(gameDealMatch[1]);
         if (!game) return sendJson(res, 404, { error: 'Game not found.' });
         const result = dealThree(game);
         if (!result.ok) return sendJson(res, result.status, { error: result.error });
         sendJson(res, 200, { dealt: result.dealt, game: result.game });
-      });
+      }, gameNetworkMode);
       return;
     }
 
     const gameHintMatch = /^\/api\/games\/([0-9a-f-]+)\/hint$/.exec(pathname);
     if (gameHintMatch && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         void readJsonBody(req).then((body) => {
           const game = games.get(gameHintMatch[1]);
           if (!game) return sendJson(res, 404, { error: 'Game not found.' });
@@ -237,17 +238,17 @@ export function createSetGalleryServer(options = {}) {
           const revealIds = revealCards.slice(0, countByMode[mode]).map((card) => card.id);
           sendJson(res, 200, { mode, revealIds });
         }).catch((error) => sendJson(res, error.statusCode ?? 400, { error: error.message || 'Invalid request body.' }));
-      });
+      }, gameNetworkMode);
       return;
     }
 
     const gameGetMatch = /^\/api\/games\/([0-9a-f-]+)$/.exec(pathname);
     if (gameGetMatch && req.method === 'GET') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         const game = games.get(gameGetMatch[1]);
         if (!game) return sendJson(res, 404, { error: 'Game not found.' });
         sendJson(res, 200, { game: serializeGame(game) });
-      });
+      }, gameNetworkMode);
       return;
     }
 
@@ -262,7 +263,7 @@ export function createSetGalleryServer(options = {}) {
 
     const gameRestartMatch = /^\/api\/games\/([0-9a-f-]+)\/restart$/.exec(pathname);
     if (gameRestartMatch && req.method === 'POST') {
-      requireLoopback(req, res, () => {
+      requireGameAccess(req, res, () => {
         const previous = games.get(gameRestartMatch[1]);
         if (!previous) return sendJson(res, 404, { error: 'Game not found.' });
         void catalog.rescan().then(async () => {
@@ -282,7 +283,7 @@ export function createSetGalleryServer(options = {}) {
           games.set(result.game.id, result.game);
           sendJson(res, 201, { game: serializeGame(result.game) });
         }).catch(() => sendJson(res, 500, { error: 'Unable to restart game from the current gallery.' }));
-      });
+      }, gameNetworkMode);
       return;
     }
 

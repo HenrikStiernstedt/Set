@@ -92,6 +92,7 @@ test('gallery endpoints preserve health routes, enforce local access, and redact
   assert.equal(availableBody.includes(fixture.temporary), false);
   assert.equal(availableBody.includes('card-000.png'), false);
   assert.equal(JSON.parse(availableBody).galleries[0].id, 'animals');
+  assert.equal(JSON.parse(availableBody).galleries[0].categories.length, 4);
 
   const localResponse = await fetch(`${base}/api/galleries`);
   const localBody = await localResponse.text();

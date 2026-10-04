@@ -24,7 +24,7 @@ On other platforms, open two terminals in the project directory:
 
 Open the Vite URL printed in the second terminal (normally `http://127.0.0.1:5173`). Vite proxies `/api` to the Node service using the configured `bindAddress` and `port`.
 
-The server defaults to `127.0.0.1:3001`. To bind on all IPv4 interfaces, set `"bindAddress": "0.0.0.0"` and choose a `"port"` in `config.json`; `PORT` overrides the configured port. The Vite development server uses the same bind address. Binding to a network interface does not enable remote gameplay or editing: endpoints guarded as loopback-only still reject requests from other devices.
+The server defaults to `127.0.0.1:3001`. For phone testing on a trusted private network, set `"networkMode": "lan"`, `"bindAddress": "0.0.0.0"`, and a `"port"` in `config.json`; `PORT` overrides the configured port. Build and run the backend (`npm run build` then `npm start`), then open `http://<PC-LAN-IP>:<port>` on the phone. LAN mode permits game setup and gameplay and exposes only safe gallery metadata; gallery editing and filesystem APIs remain loopback-only. The Vite dev server remains loopback-bound. LAN mode has no authentication, so do not expose the server to an untrusted network or the internet.
 
 ## Build and verify
 
