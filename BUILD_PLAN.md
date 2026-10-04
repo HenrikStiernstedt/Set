@@ -148,7 +148,7 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - [ ] 6. Multiplayer room/lobby and live spectator transport
 - [ ] 7. Multiplayer gameplay and same-code rounds
 - [ ] 8. Hardening, accessibility, and release readiness
-- [ ] 9. Hints, cheats and assistive overlays
+- [x] 9. Hints, cheats and assistive overlays
 - [ ] 10. Cheat controls
 
 ## Checkpoint log
@@ -174,3 +174,5 @@ Each phase should use a separate plan → implementation → validation loop. Pr
 - Gallery editor mutation slice complete: added explicit per-card editing from the viewer lightbox, manual category/value assignment with required overwrite/ignore conflict decisions, and replacement-image drop/file selection. Server validates card/category/value IDs, canonical image/root containment, image type/signature and upload size; replacement changes only the image reference, preserving all other card properties. Manifest writes now share serialized atomic backup persistence and reject invalid/external stale edits.
 - Validation: `npm test` passed (36 tests, including assignment conflict/validation, replacement metadata preservation and bad-content rejection, stale external-edit protection, and local editor API routes); `npm run build` passed; editor files report no errors.
 - Remaining milestone 3 work: category/value create/rename/delete, file browser and explicit rescan workflows, and completing the staged desktop-import preview/apply lifecycle and its ambiguity/cancel cleanup requirements. Milestone 3 remains unchecked.
+- Milestone 9 complete (2026-10-04): added board-level Reveal one/two/three using the server-authoritative Set finder, category highlighting, Fade invalid, Highlight new cards, and category overlays. Reveal ignores current selection and returns the same board-selected Set regardless of other card states; reveal modes clear after a successful match, while persistent display modes remain active. Card cues have distinct selected-outline, reveal-shake, and new-card-shadow treatments; hover no longer overrides them, and newly introduced cards appear without an entry delay.
+- Validation: `npm test` passed (40 tests, including reveal API and selection-independence regressions); `npm run build` passed. Cheat availability policy, per-gallery overrides, pre-game activation, and use history remain milestone 10 scope.
