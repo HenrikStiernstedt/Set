@@ -201,6 +201,11 @@ export function createGalleryCatalog(configuredRoots) {
     return entries.filter((entry) => entry.id && entry.name && entry.validation.valid).map((entry) => ({
       id: entry.id,
       name: entry.name,
+      categories: entry.manifest.categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        values: category.values.map((value) => ({ id: value.id, label: value.label })),
+      })),
       readiness: {
         manifestValid: true,
         categoryCount: entry.manifest.categories.length,

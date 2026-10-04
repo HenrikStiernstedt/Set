@@ -249,8 +249,8 @@ An app-owned `config.json` stores settings independent of galleries:
 - `startingBoardSize` accepts 12 or 15.
 - `targetSets` accepts 1–27.
 - `maxImageImportBytes` defaults to 25 MiB and limits each desktop-dropped image import.
-- `networkMode` is `local` by default; multiplayer hosting must be explicitly enabled as `lan` or `hosted`.
-- `bindAddress` defaults to `127.0.0.1`; `0.0.0.0` binds all IPv4 interfaces. Binding to a network interface does not grant remote access to endpoints restricted to loopback clients.
+- `networkMode` is `local` by default. `lan` allows remote game setup/gameplay and safe gallery discovery, while gallery editing and filesystem/admin endpoints remain loopback-only. LAN mode has no authentication and is for trusted private networks only.
+- `bindAddress` defaults to `127.0.0.1`; `0.0.0.0` binds all IPv4 interfaces. The Vite development server remains loopback-bound; use the backend's built-in static server for LAN clients.
 - `port` defaults to 3001 and accepts values from 1 to 65535. The `PORT` environment variable overrides the configured value.
 - `publicBaseUrl` is optional. When set, use it to construct share URLs; otherwise show detected LAN addresses and let the game master choose the address reachable by guests. Do not guess that a private LAN address is internet-accessible.
 - `multiplayerRoomIdleMinutes` defaults to 60 and controls expiry of idle rooms.

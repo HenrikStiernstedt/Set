@@ -9,7 +9,7 @@ const formattedProxyAddress = proxyAddress.includes(':') ? `[${proxyAddress}]` :
 export default defineConfig({
   plugins: [vue()],
   server: {
-    host: bindAddress,
+    host: '127.0.0.1',
     proxy: {
       '/api': `http://${formattedProxyAddress}:${port}`,
     },
