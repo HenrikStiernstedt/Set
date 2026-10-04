@@ -29,6 +29,7 @@ export function resolveServerConfig(config = readAppConfig(), env = process.env)
   const bindAddress = typeof config.bindAddress === 'string' && net.isIP(config.bindAddress)
     ? config.bindAddress
     : defaultBindAddress;
+  const networkMode = config.networkMode === 'lan' ? 'lan' : 'local';
 
-  return { bindAddress, port };
+  return { bindAddress, networkMode, port };
 }

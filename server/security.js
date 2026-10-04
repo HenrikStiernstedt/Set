@@ -27,3 +27,11 @@ export function requireLoopback(req, res, next) {
   }
   next();
 }
+
+export function requireGameAccess(req, res, next, networkMode = 'local') {
+  if (networkMode === 'lan') {
+    next();
+    return;
+  }
+  requireLoopback(req, res, next);
+}

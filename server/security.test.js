@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isLoopbackAddress, requireLoopback } from './security.js';
+import { isLoopbackAddress, requireGameAccess, requireLoopback } from './security.js';
 
 test('recognizes IPv4 loopback addresses', () => {
   assert.equal(isLoopbackAddress('127.0.0.1'), true);
@@ -38,4 +38,19 @@ test('loopback guard allows a local socket peer', () => {
   let nextCalled = false;
   requireLoopback(req, { writeHead() {}, end() {} }, () => { nextCalled = true; });
   assert.equal(nextCalled, true);
+});
+
+test('LAN game access permits remote peers only in LAN mode', () => {
+  const req = { socket: { remoteAddress: 'remote-peer' } };
+  let localModeCalled = false;
+  let lanModeCalled = false;
+  let statusCode;
+  const res = { writeHead(code) { statusCode = code; }, end() {} };
+
+  requireGameAccess(req, res, () => { localModeCalled = true; }, 'local');
+  requireGameAccess(req, res, () => { lanModeCalled = true; }, 'lan');
+
+  assert.equal(localModeCalled, false);
+  assert.equal(statusCode, 403);
+  assert.equal(lanModeCalled, true);
 });
